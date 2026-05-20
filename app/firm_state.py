@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from . import allocation, db, portfolio, tools
+from . import allocation, portfolio, tools
 
 
 def build_firm_state(refresh_prices: bool = False) -> dict[str, Any]:
@@ -35,7 +35,7 @@ def build_firm_state(refresh_prices: bool = False) -> dict[str, Any]:
 
     # All strategic sectors (including zero weight)
     seen = {r["sector"] for r in sector_rows}
-    for sec, tgt in allocation.SECTOR_TARGETS.items():
+    for sec, _tgt in allocation.SECTOR_TARGETS.items():
         if sec not in seen:
             band = allocation.sector_band(sec)
             sector_rows.append({
@@ -193,7 +193,6 @@ def ticker_context(firm_state: dict, ticker: str, proposed_entry_pct: float = 0.
         (p for p in firm_state.get("positions", []) if p["ticker"] == ticker),
         None,
     )
-    from . import tools
     dossier = tools.get_dossier(ticker)
     sector = allocation.normalize_sector(
         (dossier.get("dossier") or {}).get("sector", "Unknown") if dossier.get("found")

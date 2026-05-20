@@ -1,9 +1,6 @@
 """Cadence job idempotency and plan persistence."""
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import pytest
 
 from app import config, daily_plan
@@ -21,7 +18,7 @@ def isolated_plan(tmp_path, monkeypatch):
 
 
 def test_mark_job_done_persists(isolated_plan):
-    plan = daily_plan.load()
+    daily_plan.load()
     daily_plan.mark_job_done("pre_open", result={"summary": "ok"})
     again = daily_plan.load()
     assert "pre_open" in again["completed_jobs"]

@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any, Optional
 
-from . import config, db
+from . import db
 
 
 def _best_run_for_plan(plan_id: str) -> Optional[str]:

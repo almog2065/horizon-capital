@@ -4,6 +4,7 @@ No API keys required for: Yahoo chart JSON, Stooq CSV, SEC EDGAR company
 facts/submissions, Google News RSS.
 """
 from __future__ import annotations
+
 import csv
 import io
 import json

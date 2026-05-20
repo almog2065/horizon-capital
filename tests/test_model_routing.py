@@ -1,8 +1,6 @@
 """Cost-aware model routing tests."""
 from __future__ import annotations
 
-import os
-
 from app.model_routing import (
     estimate_cost_usd,
     model_for,

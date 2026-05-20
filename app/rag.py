@@ -1,14 +1,14 @@
 """Simple vector store on SQLite + numpy. Works with OpenAI embeddings or hash-based fallback."""
 from __future__ import annotations
-import sqlite3
-import json
+
 import hashlib
-import struct
-import math
+import json
+import sqlite3
 import time
-from pathlib import Path
 from typing import Optional
+
 import numpy as np
+
 from . import config
 
 EMBED_DIM_OPENAI = 1536  # text-embedding-3-small
@@ -129,7 +129,7 @@ def search(corpus: str, query: str, top_k: int = 5,
         return []
 
     results = []
-    for chunk_id, text, meta_json, blob, dim in rows:
+    for chunk_id, text, meta_json, blob, _dim in rows:
         vec = np.frombuffer(blob, dtype=np.float32)
         meta = json.loads(meta_json) if meta_json else {}
         if metadata_filter:
@@ -137,12 +137,15 @@ def search(corpus: str, query: str, top_k: int = 5,
             for k, v in metadata_filter.items():
                 if isinstance(v, dict):
                     if "gte" in v and meta.get(k, 0) < v["gte"]:
-                        skip = True; break
+                        skip = True
+                        break
                     if "lte" in v and meta.get(k, 1e18) > v["lte"]:
-                        skip = True; break
+                        skip = True
+                        break
                 else:
                     if meta.get(k) != v:
-                        skip = True; break
+                        skip = True
+                        break
             if skip:
                 continue
         denom = (np.linalg.norm(qvec) * np.linalg.norm(vec)) or 1e-9

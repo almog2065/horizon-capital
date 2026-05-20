@@ -5,16 +5,19 @@ Two layers:
 2. LangSmith nested runs (chain → tool/llm/retriever) when API key is set.
 """
 from __future__ import annotations
+
+import contextvars
 import json
+import os
 import sqlite3
 import time
-from collections import defaultdict
-from datetime import datetime, time as dt_time, timezone
-import contextvars
-import os
 import uuid
-from contextlib import contextmanager, nullcontext
-from typing import Optional, Any, Iterator
+from collections import defaultdict
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from datetime import time as dt_time
+from typing import Any, Iterator, Optional
+
 from . import config
 
 _current_run_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
@@ -260,8 +263,10 @@ def record_rag_search(
 
 def trading_day_start_ts() -> float:
     """Unix timestamp for midnight ET today."""
+    from datetime import datetime
+    from datetime import time as dt_time
+
     from .market_calendar import ET, trading_date
-    from datetime import datetime, time as dt_time
 
     day = trading_date()
     start_et = datetime.combine(day, dt_time.min, tzinfo=ET)
@@ -376,7 +381,7 @@ def record_llm_call(
     error: Optional[str] = None,
 ) -> str:
     """Full-content LLM trace for UI + LangSmith llm span."""
-    from . import model_routing, metrics_registry
+    from . import metrics_registry, model_routing
 
     response_str = (
         json.dumps(response, default=str) if isinstance(response, dict) else str(response)

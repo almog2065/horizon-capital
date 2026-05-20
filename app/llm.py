@@ -5,10 +5,12 @@ Falls back to deterministic mock when no API key, or after any live API
 failure (invalid key, rate limit, etc.) for the rest of the process.
 """
 from __future__ import annotations
+
 import json
 import re
 import time
-from typing import Any, Optional
+from typing import Optional
+
 from . import config, traces
 
 _client = None

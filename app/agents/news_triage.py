@@ -1,7 +1,9 @@
 """News Triage agent."""
 from __future__ import annotations
+
 import json
-from .. import llm, tools
+
+from .. import llm
 
 SYSTEM = """You are the firm's News Triage agent at Horizon Capital, a long-only
 long-horizon equity investment firm. Your job is to decide whether a news item
@@ -62,21 +64,28 @@ def _mock_output(news, holdings_tickers, watchlist_tickers):
         "record revenue", "multi-year deal", "contract win", "rallied",
         "raised fy", "operating margin guidance was raised",
     )):
-        severity = 0.88; dim = "fundamental"
+        severity = 0.88
+        dim = "fundamental"
     elif any(k in body for k in ("ceo", "cfo", "resign", "step down", "departure")):
-        severity = 0.88; dim = "management"
+        severity = 0.88
+        dim = "management"
     elif any(k in body for k in ("investigation", "lawsuit", "fine", "antitrust")):
-        severity = 0.82; dim = "regulatory"
+        severity = 0.82
+        dim = "regulatory"
     elif any(k in body for k in ("guidance cut", "guidance lowered", "missed estimates",
                                   "layoff", "recall")):
-        severity = 0.80; dim = "fundamental"
+        severity = 0.80
+        dim = "fundamental"
     elif any(k in body for k in ("guidance", "earnings", "revenue", "margin")):
-        severity = 0.72; dim = "fundamental"
+        severity = 0.72
+        dim = "fundamental"
     elif any(k in body for k in ("acquisition", "merger", "buyback", "spinoff", "deal")):
-        severity = 0.78; dim = "fundamental"
+        severity = 0.78
+        dim = "fundamental"
     elif any(k in body for k in ("routine", "color variant", "no other changes",
                                   "no hardware")):
-        severity = 0.42; dim = "sentiment"
+        severity = 0.42
+        dim = "sentiment"
 
     decision = "act" if severity >= 0.55 else ("watch" if severity >= 0.35 else "ignore")
     return {

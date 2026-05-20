@@ -1,7 +1,7 @@
 """Manager + firm-state adjustments for Idea Generator ranking."""
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 from . import allocation, asset_universe
 from .agents import firm_manager

@@ -4,8 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any, Optional
 
-from . import config, db, tools, plan_automation
-from . import pipeline_view
+from . import config, db, pipeline_view, plan_automation, tools
 
 # Pipeline order for HITL review (news → plan → risk)
 _AGENT_PIPELINE: list[tuple[str, str, str, str]] = [
@@ -153,7 +152,7 @@ def _pros_cons(
     market: dict,
     position_type: str,
 ) -> tuple[list[str], list[str]]:
-    ticker = plan["ticker"]
+    plan["ticker"]
     entry_pct = float((plan.get("entry") or {}).get("target_size_pct_nav") or 0.04)
     fund = state.get("fundamental") or {}
     risk = state.get("risk") or {}

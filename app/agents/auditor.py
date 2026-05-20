@@ -1,7 +1,9 @@
 """Auditor agent. Reviews each agent's output after-the-fact."""
 from __future__ import annotations
+
 import json
-from .. import llm, tools
+
+from .. import llm
 
 SYSTEM = """You are the Auditor at Horizon Capital. You evaluate completed agent
 actions against firm policy. You audit the PROCESS, not the result.

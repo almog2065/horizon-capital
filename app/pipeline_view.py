@@ -22,6 +22,7 @@ The view layer (Jinja partial) renders these dicts as horizontal pills with
 connector lines between them. Pure data → pure CSS, no JS required.
 """
 from __future__ import annotations
+
 import time
 from typing import Optional
 
@@ -529,7 +530,7 @@ def build_scan_pipeline(state: dict, run_status: str,
     """
     scan = state.get("idea_scan") or {}
     downstream_ids = state.get("downstream_run_ids") or []
-    final_status = state.get("final_status") or ""
+    state.get("final_status") or ""
 
     stages: dict[str, dict] = {k: {"key": k, "label": label,
                                       "state": "pending", "meta": "", "tooltip": ""}
@@ -988,7 +989,7 @@ def build_firm_balance_pipeline(state: dict, run_status: str,
                     "done" if state.get("supervision_run_id") else "skipped"
                 )
         if run_status == "error":
-            for k, s in stages.items():
+            for _k, s in stages.items():
                 if s["state"] == "running":
                     s["state"] = "error"
                     s["meta"] = final or "error"

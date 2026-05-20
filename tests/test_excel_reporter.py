@@ -8,7 +8,6 @@ The reporter writes a valid OOXML zip with stdlib only. We verify:
 from __future__ import annotations
 
 import json
-import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path

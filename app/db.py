@@ -1,13 +1,13 @@
 """SQLite persistence: holdings, plans, runs, journal."""
 from __future__ import annotations
-import sqlite3
+
 import json
+import sqlite3
 import time
 from contextlib import contextmanager
-from pathlib import Path
-from typing import Optional, Any
-from . import config
+from typing import Any, Optional
 
+from . import config
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (

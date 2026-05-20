@@ -25,6 +25,7 @@ Caching: in-process TTL cache keyed by call signature so a single scan
 doesn't hammer the same endpoint repeatedly.
 """
 from __future__ import annotations
+
 import hashlib
 import json
 import re
@@ -338,7 +339,7 @@ def fetch_recent_filings_for_ticker(ticker: str, top_k: int = 5) -> dict:
         primary = recent.get("primaryDocument") or []
 
         hits = []
-        for form, acc, dt, doc in zip(forms, accessions, dates, primary):
+        for form, acc, dt, doc in zip(forms, accessions, dates, primary, strict=False):
             if form not in ("8-K", "10-K", "10-Q", "DEF 14A"):
                 continue
             acc_clean = acc.replace("-", "")
@@ -693,7 +694,8 @@ def fetch_news_for_ticker_real(ticker: str, top_k: int = 5) -> dict:
 
 def fetch_macro_context() -> dict:
     """FX snapshot for firm_state / manager (not per-ticker pricing)."""
-    from . import config, market_providers as mp
+    from . import config
+    from . import market_providers as mp
 
     if not config.ENABLE_FX_CONTEXT:
         return {"enabled": False, "_source": "disabled"}

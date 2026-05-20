@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 import pytest
 
 from app.execution import (
-    Fill,
     asset_class_for,
     commission_for,
     compute_fill,

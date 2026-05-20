@@ -1,4 +1,3 @@
-import threading
 import urllib.request
 
 from app.workers.metrics_server import start_metrics_server

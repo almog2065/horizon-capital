@@ -34,7 +34,7 @@ def _build_today() -> "object":
     trades: list[dict] = []
 
     try:
-        from ... import db, portfolio, trade_history, firm_state
+        from ... import db, firm_state, trade_history
 
         firm = firm_state.build_firm_state(refresh_prices=False)
         nav = float(firm.get("nav", nav))

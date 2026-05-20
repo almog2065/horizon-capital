@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Any, Optional
+from typing import Any
 
-from . import config, db, firm_state as fs_mod, graph, rag, traces, trade_history
+from . import config, db, graph, rag, traces, trade_history
+from . import firm_state as fs_mod
 from .agents import firm_manager
 from .core.logging import get_logger
 from .daily_plan import load, mark_job_done, save, set_eod_report, set_manager_brief

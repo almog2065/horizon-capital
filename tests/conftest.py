@@ -7,9 +7,9 @@ rest of the package still imports.
 """
 from __future__ import annotations
 
+import logging
 import sys
 import types
-import logging
 
 
 def _maybe_stub_pydantic_backed_modules() -> None:

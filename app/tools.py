@@ -4,13 +4,14 @@ Every call is wrapped with a trace event so the UI can show the agent's
 external interactions: tool name, args, result summary, latency.
 """
 from __future__ import annotations
+
+import functools
+import hashlib
 import json
 import time
-import hashlib
-import functools
-from pathlib import Path
-from typing import Optional, Any, Callable
-from . import db, rag, config, traces
+from typing import Callable, Optional
+
+from . import config, db, rag, traces
 
 
 def _traced_tool(tool_name: str):
@@ -260,7 +261,8 @@ def fetch_quote(ticker: str) -> dict:
     """
     from .core.settings import get_settings
     if get_settings().MCP_MARKET_ENABLED:
-        from . import mcp_market, market_data as _md
+        from . import market_data as _md
+        from . import mcp_market
         try:
             return mcp_market.fetch_quote(ticker)
         except _md.MarketDataError:
@@ -279,7 +281,8 @@ def fetch_fundamentals(ticker: str) -> dict:
     """Real fundamentals via yfinance. On failure returns an ERROR STUB."""
     from .core.settings import get_settings
     if get_settings().MCP_MARKET_ENABLED:
-        from . import mcp_market, market_data as _md
+        from . import market_data as _md
+        from . import mcp_market
         try:
             return mcp_market.fetch_fundamentals(ticker)
         except _md.MarketDataError:

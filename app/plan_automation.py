@@ -1,14 +1,11 @@
 """Automated plan supervision — all plans, with or without open positions."""
 from __future__ import annotations
 
-import json
-import time
 from typing import Optional
 
 from . import allocation, config, db, tools
 from .agents import position_monitor
 from .agents.plan_supervisor import MONITORED_STATUSES
-
 
 _DEFAULT_ENTRY_PCT = 0.04
 

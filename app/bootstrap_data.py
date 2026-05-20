@@ -5,7 +5,6 @@ Runtime mutations go to SQLite only; repo files are read once at setup.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
 from . import config, ops_db

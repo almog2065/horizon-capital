@@ -1,6 +1,8 @@
 """Risk Officer agent."""
 from __future__ import annotations
+
 import json
+
 from .. import llm, tools
 
 SYSTEM = """You are the Risk Officer at Horizon Capital. You approve, modify, or
@@ -412,7 +414,8 @@ def run(
     )
     if not firm_state:
         firm_state = tools.get_firm_state(refresh_prices=False)
-    from .. import firm_state as fs_mod, trading_posture
+    from .. import firm_state as fs_mod
+    from .. import trading_posture
     entry_pct = float((plan.get("entry") or {}).get("target_size_pct_nav") or 0.04)
     portfolio_block = fs_mod.format_for_prompt(firm_state, ticker, entry_pct)
     posture = firm_state.get("trading_posture") or trading_posture.derive_posture(firm_state)

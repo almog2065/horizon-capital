@@ -1,8 +1,9 @@
 """Pydantic schemas for state and handoffs. Simplified versions of the design spec."""
 from __future__ import annotations
-from datetime import datetime
-from typing import Optional, Literal, Any
-from pydantic import BaseModel, Field
+
+from typing import Literal, Optional
+
+from pydantic import BaseModel
 
 
 # ---------- News + Triage ----------

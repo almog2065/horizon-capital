@@ -4,9 +4,10 @@ from __future__ import annotations
 import json
 import time
 import uuid
-from typing import Any, Optional
+from typing import Optional
 
-from .. import allocation, db, firm_state as fs_mod, llm, tools
+from .. import allocation, db, llm, tools
+from .. import firm_state as fs_mod
 
 ROLE_DISCLAIMER = (
     "Portfolio Manager does NOT approve/reject plans, execute orders, open or "

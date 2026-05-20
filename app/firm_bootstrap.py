@@ -82,7 +82,7 @@ def _build_bootstrap_book() -> list[tuple[str, str, float, float]]:
     adjusted = _distribute_to_target(raw, target_invested, _MAX_SINGLE_NAME_PCT)
     return [
         (ticker, sector, pct, ref_price)
-        for (ticker, sector, _p, ref_price), pct in zip(rows, adjusted)
+        for (ticker, sector, _p, ref_price), pct in zip(rows, adjusted, strict=False)
     ]
 
 

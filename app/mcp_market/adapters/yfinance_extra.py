@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import time
-from typing import Optional
 
 from ... import market_providers
 
@@ -16,7 +15,7 @@ def fetch_price_history(
     """OHLCV history — used by agents for drift / chart context."""
     try:
         import yfinance as yf
-    except ImportError as e:
+    except ImportError:
         return {"ticker": ticker, "bars": [], "error": "yfinance not installed", "_mcp_provider": "yfinance"}
 
     sym = market_providers.normalize_yahoo_symbol(ticker)

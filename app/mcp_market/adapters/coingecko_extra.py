@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import json
 import time
-import urllib.parse
-import urllib.request
 
 from ...market_data import MarketDataError, _http_get, _mark_health
 

@@ -1,7 +1,6 @@
 """Activity pipeline view for run traces."""
 from __future__ import annotations
 
-import json
 import time
 
 from app import config, db, traces
@@ -15,7 +14,7 @@ def test_build_trace_pipeline_groups_agent_children(tmp_path, monkeypatch):
     run_id = "run_tp_test"
     traces.set_context(run_id=run_id, agent="fundamental")
 
-    t0 = time.time()
+    time.time()
     traces.record("agent_start", {"agent": "fundamental"}, duration_ms=0)
     traces.record("llm_call", {"purpose": "thesis", "model": "gpt-4o"}, duration_ms=100)
     traces.record("tool_call", {"tool": "get_quote", "status": "ok"}, duration_ms=50)

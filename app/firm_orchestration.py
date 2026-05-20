@@ -5,11 +5,11 @@ import json
 import threading
 import time
 import uuid
+from pathlib import Path
 from typing import Any, Optional
 
-from pathlib import Path
-
-from . import allocation, config, db, firm_state as fs_mod, traces
+from . import allocation, config, db, traces
+from . import firm_state as fs_mod
 
 ROOT = Path(__file__).resolve().parent.parent
 _CANDIDATES_PATH = ROOT / "data" / "candidates.json"

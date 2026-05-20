@@ -1,7 +1,6 @@
 """Firm timeline builder for dashboard charts."""
 from __future__ import annotations
 
-import json
 import time
 
 from app import config, db, firm_timeline

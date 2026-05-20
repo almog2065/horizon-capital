@@ -8,18 +8,25 @@ Tracing wraps every agent: LLM calls and tool calls are linked to the agent
 that initiated them via contextvars.
 """
 from __future__ import annotations
-import os
-import time
-import uuid
+
 import json
-import traceback
 import threading
+import time
+import traceback
+import uuid
 from functools import partial
 from typing import Optional
-from . import config, db, tools, traces, plan_automation, firm_state
+
+from . import config, db, firm_state, plan_automation, tools, traces
 from .agents import (
-    news_triage, fundamental, plan_builder, risk_officer, auditor,
-    idea_generator, position_monitor, plan_supervisor, firm_manager,
+    auditor,
+    firm_manager,
+    fundamental,
+    idea_generator,
+    news_triage,
+    plan_builder,
+    plan_supervisor,
+    risk_officer,
 )
 
 # Actions that continue to Plan Builder (not terminal)
@@ -114,6 +121,7 @@ def _run_agent(run_id: str, agent_name: str, fn, *args, **kwargs):
 
 def _backfill_journal_id(run_id: str, agent_name: str, journal_id: int):
     import sqlite3
+
     from . import config
     try:
         with sqlite3.connect(config.FIRM_DB) as c:
@@ -1428,8 +1436,10 @@ def start_idea_scan(top_k: int = 3, as_of: Optional[str] = None,
 
 def _try_langgraph_compile():
     try:
-        from langgraph.graph import StateGraph, END
-        from typing import TypedDict, Optional as Opt
+        from typing import Optional as Opt
+        from typing import TypedDict
+
+        from langgraph.graph import END, StateGraph
 
         class GState(TypedDict, total=False):
             run_id: str

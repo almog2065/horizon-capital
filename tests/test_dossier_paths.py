@@ -1,8 +1,6 @@
 """Runtime dossier writes must not touch read-only seed mount."""
 from __future__ import annotations
 
-import json
-
 from app import config, dossier_paths, ops_db
 
 

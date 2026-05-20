@@ -1,8 +1,6 @@
 """Smoke tests for the production settings layer."""
 from __future__ import annotations
 
-import importlib
-
 
 def test_settings_defaults_load():
     from app.core import settings as s

@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from ..core.settings import get_settings
 from .. import market_data
+from ..core.settings import get_settings
 from . import registry
 from .adapters import coingecko_extra, yfinance_extra
 

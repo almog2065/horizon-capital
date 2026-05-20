@@ -1,6 +1,8 @@
 """Fundamental Analyst agent."""
 from __future__ import annotations
+
 import json
+
 from .. import llm, tools
 
 SYSTEM = """You are the Fundamental Analyst at Horizon Capital, a long-only
@@ -228,7 +230,8 @@ def run(ticker: str, mode: str = "new_research", as_of: str = "",
     firm_state = (context or {}).get("firm_state")
     if not firm_state:
         firm_state = tools.get_firm_state(refresh_prices=False)
-    from .. import firm_state as fs_mod, trading_posture
+    from .. import firm_state as fs_mod
+    from .. import trading_posture
     portfolio_block = fs_mod.format_for_prompt(firm_state, ticker=ticker)
     posture_block = trading_posture.format_posture_block(
         firm_state.get("trading_posture") or trading_posture.derive_posture(firm_state),

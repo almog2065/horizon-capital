@@ -27,12 +27,12 @@ async def _bootstrap() -> None:
         bootstrap_data,
         db,
         firm_bootstrap,
+        firm_orchestration,
         hitl_sync,
         ops_db,
         rag_bootstrap,
         traces,
         trade_history,
-        firm_orchestration,
     )
 
     cfg = get_settings()

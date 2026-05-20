@@ -1,8 +1,6 @@
 """Trading guardrail checks used during eval replay (mirrors policy caps)."""
 from __future__ import annotations
 
-from typing import Any
-
 # Keep in sync with app.allocation hard limits used in simulate_order.
 PER_ORDER_MAX_PCT = 0.05
 MAX_POSITION_PCT = 0.08

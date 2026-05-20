@@ -10,7 +10,7 @@ import threading
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .core.logging import get_logger
 
@@ -88,9 +88,8 @@ def _load_last_eval() -> dict[str, Any]:
 
 
 def build_prometheus_text() -> str:
-    from . import config, db, daily_plan
+    from . import daily_plan, db, traces
     from .market_calendar import is_equity_session_open, is_trading_day
-    from . import traces
 
     lines: list[str] = []
 
@@ -176,8 +175,7 @@ def build_prometheus_text() -> str:
 
 def build_ops_summary() -> dict[str, Any]:
     """JSON snapshot for diagnostics UI and /api/observability/summary."""
-    from . import db, traces, daily_plan
-    from . import daily_cadence
+    from . import daily_cadence, daily_plan, db, traces
     from .market_calendar import is_equity_session_open, to_et
 
     empty_usage = {

@@ -5,7 +5,7 @@ import json
 import time
 from typing import Any, Optional
 
-from . import config, db, portfolio
+from . import config, db
 
 
 def record_trade(

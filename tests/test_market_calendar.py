@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-import pytest
-
 from app.market_calendar import (
     due_jobs,
     is_equity_session_open,

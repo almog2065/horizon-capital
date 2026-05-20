@@ -1,9 +1,10 @@
 """Seed the RAG corpora and any starter state."""
 from __future__ import annotations
+
 import json
 import re
-from pathlib import Path
-from . import bootstrap_data, config, rag, db
+
+from . import bootstrap_data, config, db, rag
 
 
 def _chunk_text(text: str, max_chars: int = 600) -> list[str]:

@@ -3,24 +3,44 @@
 Uses lifespan (FastAPI 0.100+).
 """
 from __future__ import annotations
+
 import asyncio
 import json
-import time
-import sys
 import platform
+import sys
+import time
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import FastAPI, Request, Form, HTTPException, BackgroundTasks
+from fastapi import BackgroundTasks, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import db, rag, config, graph, llm, traces, portfolio, pipeline_view, hitl_brief, firm_state, rag_bootstrap, wait_queue, trade_history, hitl_sync, daily_plan, tools, firm_timeline, eval_dashboard
-from .market_calendar import trading_date
-from .agents import firm_manager
-from .agents import news_triage  # noqa
-
+from . import (
+    config,
+    daily_plan,
+    db,
+    eval_dashboard,
+    firm_state,
+    firm_timeline,
+    graph,
+    hitl_brief,
+    hitl_sync,
+    llm,
+    pipeline_view,
+    portfolio,
+    rag,
+    rag_bootstrap,
+    tools,
+    traces,
+    trade_history,
+    wait_queue,
+)
+from .agents import (
+    firm_manager,
+    news_triage,  # noqa
+)
 
 # NOTE: The startup logic that used to live here has moved to
 # app/core/lifecycle.py — the production lifespan. The web container
@@ -31,7 +51,7 @@ from .agents import news_triage  # noqa
 # We re-export the same name so `uvicorn app.main:app` keeps working
 # for the legacy demo entry point and for backwards-compat tests.
 from .core.lifecycle import lifespan  # noqa: F401  re-exported for back-compat
-
+from .market_calendar import trading_date
 
 app = FastAPI(title="Horizon Capital — Demo", lifespan=lifespan)
 ROOT = Path(__file__).resolve().parent

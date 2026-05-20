@@ -26,11 +26,13 @@ Decisions are grounded in:
 Output is a strict JSON contract — see SYSTEM prompt.
 """
 from __future__ import annotations
+
 import json
 import time
 import uuid
 from typing import Optional
-from .. import llm, tools, config, db, market_data, allocation, asset_universe, manager_scoring
+
+from .. import allocation, asset_universe, config, db, llm, manager_scoring, tools
 from . import firm_manager
 
 SYSTEM = """You are the Idea Generator at Horizon Capital, a long-only long-horizon
@@ -375,7 +377,7 @@ def _fit_score_from_firm_state(
     sector_pct = sector_pct_book
     band = band_info
     policy = firm_state.get("policy", {})
-    cash_pct = float(firm_state.get("cash_pct", 0))
+    float(firm_state.get("cash_pct", 0))
     invested_pct = float(firm_state.get("invested_pct", 0))
     freeze = any(
         t.get("type") == "freeze_new_entries"

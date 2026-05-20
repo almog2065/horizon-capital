@@ -1,12 +1,13 @@
 """Plan Builder agent."""
 from __future__ import annotations
+
 import json
 import re
 import time
 import uuid
 from typing import Any
 
-from .. import llm, tools, db
+from .. import db, llm, tools
 from ..portfolio import safe_float
 
 SYSTEM = """You are the Plan Builder at Horizon Capital. You construct trading plans
