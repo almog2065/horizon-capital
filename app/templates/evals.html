@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Eval harness — Horizon Capital{% endblock %}
+{% block content %}
+
+<h1>Eval harness</h1>
+<p class="muted">
+  Reproducible historical replay (<code>USE_MOCK_LLM=1</code>).
+  Portfolio vs <strong>SPY</strong> benchmark and process quality — same report as CI
+  (<code>python -m evals.run</code>).
+</p>
+
+{% if flash == 'ok' %}
+<section class="card hitl-flash hitl-flash-approve">
+  <p style="margin:0"><strong>Eval completed</strong> for window <code>{{ window }}</code>.</p>
+</section>
+{% endif %}
+
+{% if error %}
+<section class="card" style="border-left:4px solid #ff3b30">
+  <p style="margin:0"><strong>Eval failed:</strong> {{ error }}</p>
+</section>
+{% endif %}
+
+<section class="card eval-controls">
+  <form method="post" action="/evals/run" class="eval-run-form">
+    <label>
+      <span class="muted">Scenario</span>
+      <select name="window">
+        {% for s in scenarios %}
+        <option value="{{ s.id }}" {% if s.id == window %}selected{% endif %}>
+          {{ s.label }} ({{ s.events }} events)
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="button">Run replay</button>
+  </form>
+  <a href="/api/evals/report?window={{ window }}" class="banner-link" target="_blank" rel="noopener">JSON report ↗</a>
+</section>
+
+{% if report and report.get('portfolio') %}
+{% set p = report.get('portfolio', {}) %}
+{% set pr = report.get('process', {}) %}
+{% set b = report.get('benchmark', {'symbol': 'SPY', 'return_pct': p.get('benchmark_pct', 0), 'source': 'unknown'}) %}
+{% set c = report.get('cost', {}) %}
+
+<section class="card eval-panel">
+  <div class="portfolio-header">
+    <h2 style="margin:0">Portfolio vs {{ b.symbol }}</h2>
+    <span class="muted">window {{ report.window }} · {{ 'cached' if report.get('_meta', {}).get('cached') else 'fresh run' }}</span>
+  </div>
+  <div class="portfolio-kpis">
+    <div class="kpi kpi-primary">
+      <span class="kpi-label">P&amp;L</span>
+      <span class="kpi-value {% if p.pnl_absolute >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+        {{ fmt_usd(p.pnl_absolute) }}
+      </span>
+      <span class="kpi-sub {% if p.pnl_pct >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+        {{ '%+.2f'|format(p.pnl_pct) }}%
+      </span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">{{ b.symbol }} (benchmark)</span>
+      <span class="kpi-value">{{ '%+.2f'|format(b.return_pct) }}%</span>
+      <span class="kpi-sub">source: {{ b.source }}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Excess vs {{ b.symbol }}</span>
+      <span class="kpi-value {% if p.excess_return_pct >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+        {{ '%+.2f'|format(p.excess_return_pct) }} pp
+      </span>
+      <span class="kpi-sub">portfolio − benchmark</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Max drawdown</span>
+      <span class="kpi-value">{{ '%.2f'|format(p.max_drawdown_pct) }}%</span>
+      <span class="kpi-sub">hit rate {{ '%.0f'|format(p.hit_rate) }}% · {{ p.n_trades }} trades</span>
+    </div>
+  </div>
+
+  <div class="eval-compare-bar" aria-hidden="true">
+    <div class="eval-bar eval-bar-portfolio" style="width: {{ [100, (p.pnl_pct|abs * 8 + 10)]|min }}%">
+      <span>Portfolio {{ '%+.2f'|format(p.pnl_pct) }}%</span>
+    </div>
+    <div class="eval-bar eval-bar-benchmark" style="width: {{ [100, (b.return_pct|abs * 8 + 10)]|min }}%">
+      <span>{{ b.symbol }} {{ '%+.2f'|format(b.return_pct) }}%</span>
+    </div>
+  </div>
+</section>
+
+<section class="card eval-panel">
+  <h2 style="margin-top:0">Process quality</h2>
+  <div class="portfolio-kpis portfolio-kpis-secondary">
+    <div class="kpi">
+      <span class="kpi-label">Groundedness</span>
+      <span class="kpi-value">{{ '%.0f'|format(pr.grounded_ratio * 100) }}%</span>
+      <span class="kpi-sub">{{ pr.grounded_calls }}/{{ pr.n_llm_calls }} LLM calls cited</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Decision quality</span>
+      <span class="kpi-value">{{ '%.0f'|format(pr.decision_quality * 100) }}%</span>
+      <span class="kpi-sub">composite score</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Guardrails</span>
+      <span class="kpi-value">{{ '%.0f'|format(pr.guardrail_effectiveness * 100) }}%</span>
+      <span class="kpi-sub">{{ pr.guardrail_passed }}/{{ pr.guardrail_checks }} passed · {{ pr.guardrail_breaches }} breaches</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">HITL discipline</span>
+      <span class="kpi-value">{{ '%.0f'|format(pr.hitl_discipline * 100) }}%</span>
+      <span class="kpi-sub">required {{ pr.hitl_required }} · resolved {{ pr.hitl_resolved }}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Est. LLM cost</span>
+      <span class="kpi-value">${{ '%.4f'|format(c.total_usd) }}</span>
+      <span class="kpi-sub">{{ c.n_llm_calls }} calls · {{ (c.prompt_tokens + c.completion_tokens)|int }} tokens</span>
+    </div>
+  </div>
+  <table class="data-table eval-metrics-table">
+    <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Citations per decision</td><td>{{ '%.2f'|format(pr.citations_per_decision) }}</td></tr>
+      <tr><td>Refusals</td><td>{{ pr.refusal_count }}</td></tr>
+      <tr><td>Agent calls</td><td>{{ pr.n_agent_calls }}</td></tr>
+      <tr><td>Trace events</td><td>{{ report.get('trace_summary', {}).get('n_events', 0) }}</td></tr>
+      <tr><td>Reproducible</td><td>{{ 'yes' if report.get('reproducible') else 'no' }}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+{% if report.get('trades') %}
+<section class="card">
+  <h2 style="margin-top:0">Replay trades</h2>
+  <table class="data-table">
+    <thead><tr><th>Ticker</th><th>Side</th><th>Qty</th><th>Price</th><th>Realized P&amp;L</th></tr></thead>
+    <tbody>
+    {% for t in report.trades %}
+      {% set rpnl = t.get('realized_pnl') %}
+      <tr>
+        <td><strong>{{ t.get('ticker', '—') }}</strong></td>
+        <td>{{ t.get('side', '—') }}</td>
+        <td>{{ t.get('qty', 0)|int }}</td>
+        <td>${{ '%.2f'|format(t.get('price', 0)) }}</td>
+        <td>{% if rpnl is not none %}${{ '%.2f'|format(rpnl) }}{% else %}—{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="card muted eval-ci-note">
+  <h2 style="margin-top:0;font-size:15px">CI thresholds</h2>
+  <p style="margin:0;font-size:13px">
+    GitHub Actions runs
+    <code>python -m evals.run --fail-on grounded_ratio:0.75 --fail-on decision_quality:0.70 --fail-on guardrail_breaches:0</code>.
+    Local: <code>make eval-strict</code>.
+  </p>
+</section>
+
+{% else %}
+<section class="card muted">
+  <p style="margin:0">No report yet. Choose a scenario and click <strong>Run replay</strong>.</p>
+</section>
+{% endif %}
+
+{% endblock %}

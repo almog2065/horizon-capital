@@ -1,0 +1,10 @@
+{"kind": "agent_call", "agent": "plan_supervisor", "ticker": "MSFT", "event": "decision", "outcome": "approved"}
+{"kind": "llm_call", "agent": "fundamental", "ticker": "MSFT", "purpose": "thesis_check", "citations": ["10K-2024:p27", "EDGAR:MSFT-2025-Q1"]}
+{"kind": "agent_call", "agent": "plan_supervisor", "ticker": "NVDA", "event": "decision", "outcome": "approved"}
+{"kind": "llm_call", "agent": "fundamental", "ticker": "NVDA", "purpose": "thesis_check", "citations": ["news:nvda-guidance-2025-05-15", "filing:NVDA-10Q-2025-Q1"]}
+{"kind": "event", "event": "hitl_required", "ticker": "NVDA"}
+{"kind": "event", "event": "hitl_resolved", "ticker": "NVDA"}
+{"kind": "agent_call", "agent": "plan_supervisor", "ticker": "AAPL", "event": "decision", "outcome": "approved"}
+{"kind": "llm_call", "agent": "fundamental", "ticker": "AAPL", "purpose": "thesis_check", "citations": ["plan:aapl-2023"]}
+{"kind": "agent_call", "agent": "plan_supervisor", "ticker": "MSFT", "event": "decision", "outcome": "approved"}
+{"kind": "llm_call", "agent": "fundamental", "ticker": "MSFT", "purpose": "thesis_check", "citations": ["plan:msft-2024"]}

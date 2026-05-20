@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Operations — Horizon Capital{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Market-hours operations</h1>
+  <p class="muted">Wall-clock cadence per <code>operating-cadence §1</code> (America/New_York). Worker: <code>horizon-worker</code>.</p>
+  <p><strong>Now (ET):</strong> {{ ops.et_now }}
+    · Session {% if ops.session_open %}<span class="pill pill-good">OPEN</span>{% else %}<span class="pill">closed</span>{% endif %}
+  </p>
+  {% if ops.next_job %}
+  <p><strong>Next job:</strong> {{ ops.next_job.id }} at {{ ops.next_job.at_utc }}
+    <span class="wait-timer wait-timer-countdown" data-wait-until="{{ ops.now + ops.seconds_until_next }}">—</span>
+  </p>
+  {% endif %}
+  {% if ops.due_now %}
+  <p class="pill pill-warn">Due now: {{ ops.due_now|join(', ') }}</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Today's schedule</h2>
+  <table class="data-table">
+    <thead><tr><th>ET</th><th>Job</th><th>Acts</th><th>Execute</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for row in ops.schedule %}
+      <tr class="{% if row.status == 'done' %}row-done{% endif %}">
+        <td>{{ row.at_et }}</td>
+        <td><strong>{{ row.job_id }}</strong><br><span class="muted">{{ row.label }}</span></td>
+        <td>{{ 'yes' if row.acts else '—' }}</td>
+        <td>{{ 'yes' if row.executes else '—' }}</td>
+        <td>{% if row.status == 'done' %}✓ done{% else %}pending{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if plan.manager_brief %}
+<section class="card manager-panel">
+  <h2>Manager brief <span class="muted">({{ plan.manager_brief.phase or 'latest' }})</span></h2>
+  <p>{{ plan.manager_brief.book_summary }}</p>
+  {% if plan.manager_brief.tasks %}
+  <ul class="manager-tasks">
+    {% for t in plan.manager_brief.tasks[:8] %}
+    <li class="manager-task manager-priority-{{ t.priority }}">
+      <span class="manager-task-type">{{ t.type }}</span>
+      {% if t.ticker %}<strong>{{ t.ticker }}</strong>{% endif %}
+      <span class="muted"> — {{ (t.rationale or '')[:120] }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if plan.eod_summary %}
+<section class="card">
+  <h2>Last EOD snapshot</h2>
+  <p>NAV {{ fmt_usd(plan.eod_summary.nav) }} · P&amp;L {{ fmt_pct(plan.eod_summary.pnl_pct / 100) }}
+    · Trades {{ plan.eod_summary.n_trades }}</p>
+  {% if plan.eod_report_path %}
+  <p><a href="/reports/daily.xlsx">Download Excel</a> · <a href="/reports/daily/view">Web dashboard</a></p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if plan.next_day_brief %}
+<section class="card">
+  <h2>Tasks for next session</h2>
+  <p class="muted">{{ plan.next_day_brief.book_summary }}</p>
+  <ul>
+    {% for t in plan.next_day_brief.tasks %}
+    <li><strong>{{ t.type }}</strong> {% if t.ticker %}{{ t.ticker }}{% endif %} — {{ t.rationale }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  function pad(n) { return n < 10 ? "0" + n : String(n); }
+  function formatDuration(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    if (h > 0) return h + "h " + pad(m) + "m";
+    if (m > 0) return m + "m " + pad(s) + "s";
+    return s + "s";
+  }
+  function tick() {
+    var now = Date.now() / 1000;
+    document.querySelectorAll("[data-wait-until]").forEach(function (el) {
+      var until = parseFloat(el.getAttribute("data-wait-until"));
+      if (!until) return;
+      var sec = until - now;
+      el.textContent = sec > 0 ? formatDuration(sec) : "due now";
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+{% endblock %}

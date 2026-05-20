@@ -1,0 +1,41 @@
+{
+  "window": "2025-05-15",
+  "starting_nav": 1000000.0,
+  "benchmark_symbol": "SPY",
+  "benchmark_pct": 0.45,
+  "events": [
+    {
+      "ticker": "MSFT",
+      "action": "buy",
+      "qty": 100,
+      "price": 410.00,
+      "citations": ["10K-2024:p27", "EDGAR:MSFT-2025-Q1"],
+      "hitl": false
+    },
+    {
+      "ticker": "NVDA",
+      "action": "buy",
+      "qty": 50,
+      "price": 880.00,
+      "citations": ["news:nvda-guidance-2025-05-15", "filing:NVDA-10Q-2025-Q1"],
+      "hitl": true
+    },
+    {
+      "ticker": "AAPL",
+      "action": "buy",
+      "qty": 75,
+      "price": 192.00,
+      "citations": ["plan:aapl-2023"],
+      "hitl": false
+    },
+    {
+      "ticker": "MSFT",
+      "action": "sell",
+      "qty": 100,
+      "price": 415.50,
+      "realized_pnl": 550.00,
+      "citations": ["plan:msft-2024"],
+      "hitl": false
+    }
+  ]
+}

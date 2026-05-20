@@ -1,0 +1,26 @@
+{
+  "window": "guardrail_block",
+  "starting_nav": 1000000.0,
+  "benchmark_symbol": "SPY",
+  "benchmark_pct": 0.10,
+  "events": [
+    {
+      "ticker": "MSFT",
+      "action": "buy",
+      "qty": 100,
+      "price": 410.0,
+      "citations": ["10K-2024:p27"],
+      "hitl": false
+    },
+    {
+      "ticker": "META",
+      "action": "buy",
+      "qty": 20000,
+      "price": 500.0,
+      "citations": ["news:meta"],
+      "hitl": false,
+      "expect_guardrail_block": true,
+      "violations": ["order exceeds 5% NAV per-order cap"]
+    }
+  ]
+}

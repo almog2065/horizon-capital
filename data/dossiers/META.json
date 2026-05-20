@@ -1,0 +1,23 @@
+{
+  "ticker": "META",
+  "name": "META",
+  "sector": "Communication Services",
+  "sub_industry": "Internet Content & Information",
+  "market_cap_usd": 1548971278336.0,
+  "business_description": "Meta Platforms, Inc. engages in the development of products that enable people to connect and share with friends and family through mobile devices, personal computers, virtual reality (VR) headsets, and AI glasses in the United States, Canada, Europe, Asia-Pacific, and internationally. It operates through two segments, Family of Apps (FoA) and Reality Labs (RL). The FoA segment offers Facebook, which enables people to build community through feed, reels, stories, groups, marketplace, and other; Instagram that brings people closer through Instagram feed, stories, reels, live, and messaging; Messenger, a messaging application for people to connect with friends, family, communities, and businesses across platforms and devices through text, audio, and video calls; Meta AI, an assistant that's ",
+  "revenue_segments": [],
+  "known_risks": [
+    {
+      "category": "onboarding",
+      "description": "no recent SEC filings retrieved \u2014 limit thesis confidence.",
+      "severity": "medium"
+    }
+  ],
+  "peer_set": [],
+  "current_status": "watchlist",
+  "onboarding_source": "idea_scan",
+  "watchlist_seasoned": true,
+  "scan_run_id": "scan_test",
+  "suggested_entry_pct_nav": 0.03,
+  "scan_composite_score": 0.739
+}

@@ -1,0 +1,14 @@
+{
+  "plan_id": "plan_aapl_2023_q3",
+  "ticker": "AAPL",
+  "sector": "Information Technology",
+  "thesis_summary": "Services growth offsetting iPhone unit weakness. Buybacks support EPS. Valuation reasonable.",
+  "entry_date": "2023-09-04",
+  "exit_date": "2024-04-22",
+  "outcome": {
+    "realized_return_pct": 0.08,
+    "holding_period_days": 231,
+    "thesis_validated": "partially"
+  },
+  "lesson_learned": "Underestimated China demand erosion. Services thesis held but iPhone weakness was steeper than modeled."
+}

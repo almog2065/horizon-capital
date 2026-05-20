@@ -1,0 +1,70 @@
+{% from "_trace_pipeline_body.html" import trace_body %}
+{% from "_trace_pipeline_calls.html" import call_inventory %}
+
+{% macro trace_pipeline(p) -%}
+{% if p and p.steps %}
+<section class="card trace-pipeline-card" id="trace-pipeline-section">
+  <div class="portfolio-header">
+    <h2 style="margin:0">Activity pipeline</h2>
+    <span class="muted">{{ p.summary }} · {{ p.total_label }} wall time</span>
+  </div>
+  <div class="trace-pipeline-legend">
+    <span><i class="tp-dot tp-agent"></i> Agent</span>
+    <span><i class="tp-dot tp-llm"></i> LLM</span>
+    <span><i class="tp-dot tp-tool"></i> Tool</span>
+    <span><i class="tp-dot tp-rag"></i> RAG</span>
+    <span><i class="tp-dot tp-event"></i> Event</span>
+  </div>
+  <ol class="trace-pipeline-list">
+    {% for s in p.steps %}
+    <li class="trace-pipeline-item trace-pipeline-{{ s.kind }}{% if s.status == 'error' %} trace-pipeline-error{% endif %}">
+      <details class="trace-pipeline-node"{% if loop.first %} open{% endif %}>
+        <summary class="trace-pipeline-summary">
+          <span class="tp-icon tp-icon-{{ s.kind }}" aria-hidden="true"></span>
+          <span class="trace-pipeline-main">
+            <span class="trace-pipeline-title">{{ s.title }}</span>
+            {% if s.subtitle %}<span class="trace-pipeline-sub muted">{{ s.subtitle }}</span>{% endif %}
+          </span>
+          <span class="trace-pipeline-badges">
+            {% if s.agent and s.kind != 'agent' %}
+            <span class="pill pill-small">{{ s.agent }}</span>
+            {% endif %}
+            {% if s.tools %}
+            {% for tool in s.tools[:4] %}
+            <span class="pipeline-tool-pill" title="{{ tool }}">{{ tool }}</span>
+            {% endfor %}
+            {% endif %}
+            <span class="trace-pipeline-dur">{{ s.duration_label }}</span>
+          </span>
+        </summary>
+        {% if s.call_inventory %}
+        {{ call_inventory(s.call_inventory) }}
+        {% endif %}
+        {% if s.children %}
+        <ul class="trace-pipeline-children">
+          {% for c in s.children %}
+          <li class="trace-pipeline-child trace-pipeline-{{ c.kind }}">
+            <details class="trace-pipeline-node trace-pipeline-node-nested">
+              <summary class="trace-pipeline-summary">
+                <span class="tp-icon tp-icon-{{ c.kind }}" aria-hidden="true"></span>
+                <span class="trace-pipeline-main">
+                  <span class="trace-pipeline-title">{{ c.title }}</span>
+                  {% if c.subtitle %}<span class="trace-pipeline-sub muted">{{ c.subtitle }}</span>{% endif %}
+                </span>
+                <span class="trace-pipeline-dur">{{ c.duration_label }}</span>
+              </summary>
+              {{ trace_body(c.trace) }}
+            </details>
+          </li>
+          {% endfor %}
+        </ul>
+        {% elif s.trace and s.kind != 'agent' %}
+        {{ trace_body(s.trace) }}
+        {% endif %}
+      </details>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+{%- endmacro %}

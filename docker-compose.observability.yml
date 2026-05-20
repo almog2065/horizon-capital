@@ -1,0 +1,65 @@
+# Layered observability stack. Use with the main file:
+#
+#   docker compose \
+#     -f docker-compose.yml \
+#     -f docker-compose.observability.yml \
+#     up -d
+#
+# Adds Prometheus (scrape /metrics) and Grafana (pre-provisioned).
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: horizon-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - horizon
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      web:
+        condition: service_healthy
+      worker:
+        condition: service_started
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: horizon-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - horizon
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+volumes:
+  prometheus-data:
+  grafana-data:

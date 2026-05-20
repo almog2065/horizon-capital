@@ -1,0 +1,24 @@
+{
+  "ticker": "AAPL",
+  "name": "Apple Inc.",
+  "sector": "Information Technology",
+  "sub_industry": "Technology Hardware",
+  "market_cap_usd": 2800000000000,
+  "business_description": "Apple designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories, and sells related services. iPhone is the dominant revenue contributor; Services is the fastest-growing segment.",
+  "revenue_segments": [
+    {"name": "iPhone", "pct_of_revenue": 0.52, "growth_yoy": 0.02},
+    {"name": "Services", "pct_of_revenue": 0.26, "growth_yoy": 0.14},
+    {"name": "Wearables/Home/Accessories", "pct_of_revenue": 0.10, "growth_yoy": 0.05},
+    {"name": "Mac & iPad", "pct_of_revenue": 0.12, "growth_yoy": -0.02}
+  ],
+  "management": {
+    "ceo": {"name": "Tim Cook", "since": "2011-08-24"},
+    "cfo": {"name": "Luca Maestri", "since": "2014-05-29"}
+  },
+  "known_risks": [
+    {"category": "competitive", "description": "China smartphone share pressure", "severity": "medium"},
+    {"category": "regulatory", "description": "EU DMA - App Store opening", "severity": "medium"}
+  ],
+  "peer_set": ["GOOGL", "MSFT", "META"],
+  "current_status": "watchlist"
+}

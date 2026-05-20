@@ -1,0 +1,23 @@
+{
+  "ticker": "ADBE",
+  "name": "ADBE",
+  "sector": "Information Technology",
+  "sub_industry": "Software - Application",
+  "market_cap_usd": 103329685504.0,
+  "business_description": "Adobe Inc. operates as a technology company worldwide. The Digital Media segment offers products and services that enable individuals, teams, and enterprises to create, publish, and promote content. This segment serves photographers, video editors, graphic and experience designers, game developers, content creators, students, marketers, business owners, knowledge workers, and consumers. The Digital Experience segment provides an integrated platform; and products, services, and solutions that enable brands and businesses to create, manage, execute, measure, monetize, and optimize customer experiences from analytics to commerce. This segment serves marketers, advertisers, agencies, publishers, merchandisers, merchants, web analysts, data scientists, developers, and executives across the C-su",
+  "revenue_segments": [],
+  "known_risks": [
+    {
+      "category": "onboarding",
+      "description": "no recent SEC filings retrieved \u2014 limit thesis confidence.",
+      "severity": "medium"
+    }
+  ],
+  "peer_set": [],
+  "current_status": "watchlist",
+  "onboarding_source": "idea_scan",
+  "watchlist_seasoned": true,
+  "scan_run_id": "scan_5f8c9e26538b",
+  "suggested_entry_pct_nav": 0.03,
+  "scan_composite_score": 1.0
+}

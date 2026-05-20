@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-05-18T22:12:12+00:00",
+  "window": "2026-05-18",
+  "nav": 1005500.0,
+  "starting_nav": 1000000.0,
+  "pnl_absolute": 5500.0,
+  "pnl_pct": 0.5499999999999999,
+  "benchmark_pct": 0.45,
+  "holdings": [
+    {
+      "ticker": "MSFT",
+      "qty": 100,
+      "avg_cost": 410.0,
+      "last_price": 415.5
+    },
+    {
+      "ticker": "NVDA",
+      "qty": 50,
+      "avg_cost": 880.0,
+      "last_price": 892.3
+    },
+    {
+      "ticker": "AAPL",
+      "qty": 75,
+      "avg_cost": 192.0,
+      "last_price": 195.2
+    }
+  ],
+  "trades": [
+    {
+      "ts": "2026-05-19T09:31:00Z",
+      "ticker": "MSFT",
+      "side": "buy",
+      "qty": 100,
+      "price": 410.0,
+      "citations": [
+        "10K-2024:p27",
+        "EDGAR:MSFT-2025-Q1"
+      ],
+      "hitl": false
+    },
+    {
+      "ts": "2026-05-19T10:02:00Z",
+      "ticker": "NVDA",
+      "side": "buy",
+      "qty": 50,
+      "price": 880.0,
+      "citations": [
+        "news:nvda-guidance-2025-05-15"
+      ],
+      "hitl": true
+    },
+    {
+      "ts": "2026-05-19T14:45:00Z",
+      "ticker": "MSFT",
+      "side": "sell",
+      "qty": 100,
+      "price": 415.5,
+      "realized_pnl": 550.0,
+      "citations": [
+        "plan:msft-2025"
+      ],
+      "hitl": false
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Trading history — Horizon Capital{% endblock %}
+{% block content %}
+
+<h1>Firm trading history</h1>
+<p class="muted">Ledger of simulated buys, sells, and HITL rejections. As of {{ trade_hist.as_of }}.</p>
+
+<div class="portfolio-kpis portfolio-kpis-secondary" style="margin-bottom:20px">
+  <div class="kpi">
+    <span class="kpi-label">Total events</span>
+    <span class="kpi-value">{{ trade_hist.summary.total }}</span>
+    <span class="kpi-sub">{{ trade_hist.summary.buys }} buys · {{ trade_hist.summary.sells }} sells · {{ trade_hist.summary.rejected }} rejected</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Live buys</span>
+    <span class="kpi-value">{{ trade_hist.summary.live_fills }}</span>
+    <span class="kpi-sub">{{ fmt_usd(trade_hist.summary.total_notional_open_usd) }} bought (sim)</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Closed win rate</span>
+    <span class="kpi-value">
+      {% if trade_hist.summary.win_rate_closed is not none %}
+        {{ (trade_hist.summary.win_rate_closed * 100)|round(0) }}%
+      {% else %}—{% endif %}
+    </span>
+    <span class="kpi-sub">Avg return {{ fmt_pct(trade_hist.summary.avg_close_return_pct, false) }} on archived closes</span>
+  </div>
+</div>
+
+<div class="card card-wide">
+  <table class="trade-history-table">
+    <thead>
+      <tr>
+        <th>When</th>
+        <th>Buy / Sell</th>
+        <th>Ticker</th>
+        <th>Qty / notional</th>
+        <th>Price</th>
+        <th>Return</th>
+        <th>Source</th>
+        <th>Links</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for t in trade_hist.trades %}
+      <tr>
+        <td>{{ fmt_trade_ts(t.ts) }}<br><span class="muted">{{ t.as_of[:10] if t.as_of else '' }}</span></td>
+        <td><span class="trade-badge trade-{{ t.buy_sell or t.action }}">{{ t.action_label }}</span></td>
+        <td><strong>{{ t.ticker }}</strong>{% if t.sector %}<br><span class="muted">{{ t.sector }}</span>{% endif %}</td>
+        <td>
+          {% if t.action in ['open', 'buy', 'close', 'sell'] and t.quantity %}
+            {{ t.quantity }} sh<br><span class="muted">{{ fmt_usd(t.notional_usd) }}</span>
+          {% elif t.action in ['open', 'buy', 'close', 'sell'] and t.notional_usd %}
+            <span class="muted">{{ fmt_usd(t.notional_usd) }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td>{% if t.price %}{{ fmt_usd(t.price) }}{% else %}—{% endif %}</td>
+        <td>
+          {% if t.return_pct is not none %}
+            <span class="{% if t.return_pct >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+              {{ fmt_pct(t.return_pct, false) }}
+            </span>
+            {% if t.holding_days %}<br><span class="muted">{{ t.holding_days }}d hold</span>{% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td><span class="muted">{{ t.source }}</span></td>
+        <td>
+          {% if t.plan_id %}<a href="/plan/{{ t.plan_id }}">plan</a>{% endif %}
+          {% if t.run_id %} · <a href="/run/{{ t.run_id }}">run</a>{% endif %}
+        </td>
+      </tr>
+      {% if t.action in ['close', 'sell'] and t.meta and t.meta.thesis_summary %}
+      <tr class="trade-detail-row">
+        <td colspan="8" class="muted" style="font-size:12px;padding-top:0">
+          {{ t.meta.thesis_summary[:200] }}{% if t.meta.lesson_learned %} · <em>{{ t.meta.lesson_learned[:120] }}</em>{% endif %}
+        </td>
+      </tr>
+      {% endif %}
+    {% else %}
+      <tr><td colspan="8" class="muted">No trades recorded yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p><a href="/">← Dashboard</a></p>
+
+{% endblock %}

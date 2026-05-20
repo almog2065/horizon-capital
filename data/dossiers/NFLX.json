@@ -1,0 +1,23 @@
+{
+  "ticker": "NFLX",
+  "name": "NFLX",
+  "sector": "Communication Services",
+  "sub_industry": "Entertainment",
+  "market_cap_usd": 377498107904.0,
+  "business_description": "Netflix, Inc. provides entertainment services worldwide. The company offers television (TV) series, documentaries, feature films, games, and live programming across various genres and languages. It also provides members the ability to receive streaming content through a host of internet-connected devices, including TVs, digital video players, TV set-top boxes, and mobile devices. Netflix, Inc. was incorporated in 1997 and is headquartered in Los Gatos, California.",
+  "revenue_segments": [],
+  "known_risks": [
+    {
+      "category": "onboarding",
+      "description": "no recent SEC filings retrieved \u2014 limit thesis confidence.",
+      "severity": "medium"
+    }
+  ],
+  "peer_set": [],
+  "current_status": "watchlist",
+  "onboarding_source": "idea_scan",
+  "watchlist_seasoned": true,
+  "scan_run_id": "scan_ac2011546ae0",
+  "suggested_entry_pct_nav": 0.03,
+  "scan_composite_score": 1.0
+}

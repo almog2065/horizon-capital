@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Trigger a news event</h1>
+<p class="muted">Agents run in sequence: News Triage → Fundamental → Plan Builder →
+<strong>Risk Officer (decides HITL vs execution)</strong> → Execution or HITL pause.
+Auditor reviews every step.</p>
+
+<div class="card trigger-actions">
+  <h2>Watchlist sweep</h2>
+  <p class="muted">Runs the full agent chain once per dossier ticker (MSFT, AAPL, NVDA).
+  Each run ends at <strong>HITL</strong> or <strong>autonomous execution</strong> depending
+  on Fundamental + Risk decisions — not a fixed rule.</p>
+  <form method="post" action="/trigger/watchlist-sweep">
+    <button type="submit" class="btn-full">Watchlist sweep</button>
+  </form>
+</div>
+
+<form method="post" action="/trigger" class="card form-card">
+  <label>Headline
+    <input type="text" name="headline" required style="width:100%">
+  </label>
+
+  <label>Body
+    <textarea name="body" rows="6" style="width:100%" required></textarea>
+  </label>
+
+  <label>Tickers (comma-separated)
+    <input type="text" name="tickers" placeholder="MSFT, AAPL" required>
+  </label>
+
+  <label>Source
+    <input type="text" name="source" value="manual">
+  </label>
+
+  <button type="submit">Trigger run</button>
+</form>
+
+{% if samples %}
+<h2>Quick-fill from samples</h2>
+<div class="samples">
+  {% for s in samples %}
+  <div class="card sample">
+    <h3>{{ s.name }}</h3>
+    <p><strong>{{ s.data.headline }}</strong></p>
+    <p>{{ s.data.body[:200] }}{% if s.data.body|length > 200 %}…{% endif %}</p>
+    <p class="muted">tickers: {{ s.data.tickers|join(', ') }}</p>
+    <form method="post" action="/trigger">
+      <input type="hidden" name="headline" value="{{ s.data.headline }}">
+      <input type="hidden" name="body" value="{{ s.data.body }}">
+      <input type="hidden" name="tickers" value="{{ s.data.tickers|join(',') }}">
+      <input type="hidden" name="source" value="{{ s.data.source }}">
+      <button type="submit">Trigger run</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

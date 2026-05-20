@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>System diagnostics</h1>
+
+<section class="card">
+  <h2>Connectivity tests <span class="muted">(make actual calls)</span></h2>
+  <div class="test-buttons">
+    <button onclick="testLLM()" class="approve">Test LLM call</button>
+    <button onclick="testLangSmith()" class="approve">Test LangSmith</button>
+    <button onclick="testRAG()" class="approve">Test RAG search</button>
+    <button onclick="testMarketData()" class="approve">Test market data</button>
+  </div>
+  <pre id="test-result" class="test-result">Click a button to run a test…</pre>
+</section>
+
+{% if market_data_status %}
+<section class="card">
+  <h2>Market data sources</h2>
+  <p class="muted">Fallback chain: yfinance → Yahoo chart / Stooq → EDGAR XBRL → Google News RSS.</p>
+  <table>
+    {% for name, st in market_data_status.items() if name not in ('cache_size', 'yfinance_installed') %}
+    <tr>
+      <th>{{ name }}</th>
+      <td>{% if st.ok is none %}—{% elif st.ok %}✅{% else %}❌ {{ st.last_error or '' }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+    <tr><th>yfinance package</th><td>{{ 'installed' if market_data_status.yfinance_installed else 'missing' }}</td></tr>
+    <tr><th>cache entries</th><td>{{ market_data_status.cache_size }}</td></tr>
+  </table>
+</section>
+{% endif %}
+
+{% if mcp_market_status %}
+<section class="card">
+  <h2>Market data MCP (free, in-process)</h2>
+  <p class="muted">Horizon maps MCP-equivalent tools to native adapters — no paid API keys.
+    Cursor devs can also attach external MCP servers (see <code>docs/mcp-market-data.md</code>).</p>
+  <p>Bridge enabled: <strong>{{ mcp_market_status.enabled }}</strong>
+    · CoinGecko trending: {{ mcp_market_status.coingecko_trending }}
+    · yfinance history: {{ mcp_market_status.yfinance_history }}</p>
+  <table>
+    <thead><tr><th>Provider</th><th>Tools</th><th>In-app</th></tr></thead>
+    <tbody>
+    {% for p in mcp_market_status.providers %}
+    <tr>
+      <th>{{ p.name }}</th>
+      <td class="mono" style="font-size:11px">{{ p.tools|join(', ') }}</td>
+      <td>{% if p.horizon_native %}✅{% else %}Cursor only{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>LLM</h2>
+  <table>
+    <tr><th>OpenAI API key set</th><td>{{ '✅' if llm_status.openai_api_key_set else '❌' }}</td></tr>
+    <tr><th>USE_MOCK_LLM flag</th><td>{{ llm_status.use_mock_llm_flag }}</td></tr>
+    <tr><th>Runtime degraded</th><td>{{ '⚠ yes' if llm_status.runtime_mock else 'no' }}{% if llm_status.runtime_mock_reason %} ({{ llm_status.runtime_mock_reason }}){% endif %}</td></tr>
+    <tr><th>Client initialized</th><td>{{ '✅' if llm_status.client_ok else '❌' }}</td></tr>
+    <tr><th>Active mode</th><td><strong>{{ 'MOCK' if llm_status.mock_active else 'LIVE' }}</strong></td></tr>
+    <tr><th>Model</th><td>{{ llm_status.model }}</td></tr>
+    <tr><th>Embedding model</th><td>{{ llm_status.embedding_model }}</td></tr>
+  </table>
+  {% if llm_status.mock_active %}
+  <p class="muted">⚠ Running in MOCK mode. Agents return deterministic outputs.
+     To enable LIVE LLM, ensure your <code>.env</code> contains
+     <code>OPENAI_API_KEY=sk-…</code> and either omit <code>USE_MOCK_LLM</code>
+     or set it to <code>0</code>. Then restart.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>LangSmith tracing</h2>
+  <table>
+    <tr><th>LANGSMITH_API_KEY set</th><td>{{ '✅' if ls_status.langsmith_api_key_set else '❌' }}</td></tr>
+    <tr><th>Project</th><td>{{ ls_status.langsmith_project }}</td></tr>
+    <tr><th>Tracing flag</th><td>{{ ls_status.langsmith_tracing }}</td></tr>
+    <tr><th>Client initialized</th><td>{{ '✅' if ls_status.langsmith_client_ok else '❌' }}</td></tr>
+  </table>
+  {% if not ls_status.langsmith_api_key_set %}
+  <p class="muted">To enable LangSmith, add to your <code>.env</code>:</p>
+  <pre>LANGSMITH_API_KEY=ls__...
+LANGSMITH_TRACING=true
+LANGSMITH_PROJECT=horizon-capital</pre>
+  <p class="muted">Then restart. Runs will appear at
+  <a href="https://smith.langchain.com" target="_blank">smith.langchain.com</a>
+  under the project name.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>RAG corpus</h2>
+  <p>
+    Status:
+    {% if rag_status.ready %}
+      <span class="pill" style="background:#e8f8ed">ready</span>
+    {% else %}
+      <span class="pill" style="background:#ffecec">not ready</span>
+      — restart the app to auto-seed, or run
+      <code>python -m app.seed</code>
+    {% endif %}
+  </p>
+  {% if rag_status.issues %}
+  <ul class="muted" style="font-size:13px">
+    {% for issue in rag_status.issues %}
+    <li>{{ issue }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <table>
+    <tr><th>Policy</th><td>{{ rag_counts.policy }} chunks ({{ rag_status.policy_files_on_disk|length }} files on disk)</td></tr>
+    <tr><th>News</th><td>{{ rag_counts.news }} chunks</td></tr>
+    <tr><th>Filings</th><td>{{ rag_counts.filings }} chunks</td></tr>
+    <tr><th>Past plans</th><td>{{ rag_counts.past_plans }} chunks</td></tr>
+  </table>
+  {% if rag_status.missing_policy_docs %}
+  <p class="muted">Missing from index: {{ rag_status.missing_policy_docs|join(', ') }}</p>
+  {% endif %}
+</section>
+
+{% if obs %}
+<section class="card">
+  <h2>Observability <span class="muted">(live)</span></h2>
+  <p class="muted">ET {{ obs.et_now }} · Session {{ 'OPEN' if obs.session_open else 'closed' }}
+    · <a href="/metrics">Prometheus /metrics</a> ·
+    <a href="/api/observability/summary">JSON summary</a> ·
+    HITL pending: <strong>{{ obs.hitl_pending }}</strong></p>
+  <table>
+    <tr><th colspan="2">LLM today (ET)</th></tr>
+    <tr><th>Calls</th><td>{{ obs.llm_usage_today.llm_calls }}</td></tr>
+    <tr><th>Tokens</th><td>{{ '{:,}'.format(obs.llm_usage_today.tokens_total) }}</td></tr>
+    <tr><th>Est. cost</th><td>${{ '%.4f'|format(obs.llm_usage_today.cost_usd) }}</td></tr>
+    <tr><th>RAG / tools</th><td>{{ obs.llm_usage_today.rag_calls }} / {{ obs.llm_usage_today.tool_calls }}</td></tr>
+    <tr><th colspan="2">LLM all-time (trace DB)</th></tr>
+    <tr><th>Calls</th><td>{{ obs.llm_usage_all_time.llm_calls }}</td></tr>
+    <tr><th>Est. cost</th><td>${{ '%.4f'|format(obs.llm_usage_all_time.cost_usd) }}</td></tr>
+  </table>
+  {% if obs.llm_by_purpose_today %}
+  <h3 style="margin-top:12px;font-size:14px">Cost by purpose (today)</h3>
+  <table>
+    <tr><th>Purpose</th><th>Calls</th><th>Tokens</th><th>USD</th><th>Model</th></tr>
+    {% for row in obs.llm_by_purpose_today %}
+    <tr>
+      <td><code>{{ row.purpose }}</code></td>
+      <td>{{ row.calls }}</td>
+      <td>{{ '{:,}'.format(row.tokens) }}</td>
+      <td>${{ '%.4f'|format(row.cost_usd) }}</td>
+      <td class="muted">{{ row.model or '—' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  {% if obs.last_eval %}
+  <h3 style="margin-top:12px;font-size:14px">Last eval ({{ obs.last_eval.window }})</h3>
+  <table>
+    <tr><th>P&amp;L</th><td>{{ '%.2f'|format(obs.last_eval.portfolio.pnl_pct or 0) }}%</td></tr>
+    <tr><th>Grounded</th><td>{{ '%.1f'|format((obs.last_eval.process.grounded_ratio or 0) * 100) }}%</td></tr>
+    <tr><th>Est. cost</th><td>${{ '%.4f'|format((obs.last_eval.cost.total_usd if obs.last_eval.cost else 0) or 0) }}</td></tr>
+    <tr><th>Report</th><td><code>{{ obs.last_eval.path }}</code></td></tr>
+  </table>
+  {% else %}
+  <p class="muted">No eval artifact yet — run <code>make eval</code>.</p>
+  {% endif %}
+  <p class="muted" style="margin-top:8px">Cadence completed today: {{ (obs.cadence.completed_today or [])|join(', ') or 'none' }}</p>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Storage</h2>
+  <table>
+    <tr><th>FIRM_DB</th><td><code>{{ config.firm_db }}</code></td></tr>
+    <tr><th>VECTOR_DB</th><td><code>{{ config.vector_db }}</code></td></tr>
+    <tr><th>Dossiers dir</th><td><code>{{ config.dossiers_dir }}</code></td></tr>
+    <tr><th>Starting NAV</th><td>${{ '{:,.0f}'.format(config.starting_nav) }}</td></tr>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Platform & versions</h2>
+  <table>
+    <tr><th>Python</th><td>{{ platform.python }}</td></tr>
+    <tr><th>System</th><td>{{ platform.system }}</td></tr>
+    <tr><th>fastapi</th><td>{{ platform.fastapi }}</td></tr>
+    <tr><th>uvicorn</th><td>{{ platform.uvicorn }}</td></tr>
+    <tr><th>openai</th><td>{{ platform.openai }}</td></tr>
+    <tr><th>langgraph</th><td>{{ platform.langgraph }}</td></tr>
+    <tr><th>langsmith</th><td>{{ platform.langsmith }}</td></tr>
+    <tr><th>pydantic</th><td>{{ platform.pydantic }}</td></tr>
+  </table>
+</section>
+
+<p><a href="/">← back to dashboard</a></p>
+
+<script>
+async function _post(url) {
+  const res = document.getElementById('test-result');
+  res.textContent = 'Running…';
+  res.className = 'test-result loading';
+  try {
+    const r = await fetch(url, {method: 'POST'});
+    const data = await r.json();
+    res.textContent = JSON.stringify(data, null, 2);
+    res.className = data.ok ? 'test-result ok' : 'test-result fail';
+  } catch (e) {
+    res.textContent = 'Request failed: ' + e.message;
+    res.className = 'test-result fail';
+  }
+}
+function testLLM()        { _post('/api/diagnostics/test_llm'); }
+function testLangSmith()  { _post('/api/diagnostics/test_langsmith'); }
+function testRAG()        { _post('/api/diagnostics/test_rag'); }
+function testMarketData() { _post('/api/diagnostics/test_market_data'); }
+</script>
+
+{% endblock %}

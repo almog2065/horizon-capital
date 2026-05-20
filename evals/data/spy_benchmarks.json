@@ -1,0 +1,8 @@
+{
+  "_comment": "Offline SPY total returns (% ) for eval windows — reproducible, no live market API in CI.",
+  "default_pct": 0.0,
+  "windows": {
+    "sample": 0.45,
+    "2025-05-15": 0.45
+  }
+}

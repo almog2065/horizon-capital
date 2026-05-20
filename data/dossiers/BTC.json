@@ -1,0 +1,28 @@
+{
+  "ticker": "BTC",
+  "name": "BTC",
+  "sector": "Digital Assets",
+  "sub_industry": "Cryptocurrency",
+  "market_cap_usd": 1541310357726.462,
+  "business_description": "BTC spot crypto asset; fundamentals are network/market metrics, not GAAP financials.",
+  "revenue_segments": [],
+  "known_risks": [
+    {
+      "category": "onboarding",
+      "description": "yfinance fundamentals unavailable; relying on deterministic mock \u2014 analyst must verify before plan.",
+      "severity": "medium"
+    },
+    {
+      "category": "onboarding",
+      "description": "no recent SEC filings retrieved \u2014 limit thesis confidence.",
+      "severity": "medium"
+    }
+  ],
+  "peer_set": [],
+  "current_status": "watchlist",
+  "onboarding_source": "idea_scan",
+  "watchlist_seasoned": true,
+  "scan_run_id": "scan_5f8c9e26538b",
+  "suggested_entry_pct_nav": 0.03,
+  "scan_composite_score": 1.0
+}

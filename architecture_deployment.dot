@@ -1,0 +1,144 @@
+/* ============================================================
+   Horizon Capital — Deployment View (containers + cloud)
+   Audience: operators / reviewers / DevOps
+   ============================================================ */
+digraph horizon_capital_deploy {
+  rankdir=TB;
+  bgcolor="white";
+  fontname="Helvetica";
+  splines=spline;
+  nodesep=0.4;
+  ranksep=0.7;
+  pad=0.4;
+  node [fontname="Helvetica", fontsize=11, style="filled,rounded", color="#333333", penwidth=1.4];
+  edge [fontname="Helvetica", fontsize=10, color="#555555", penwidth=1.3];
+
+  labelloc="t";
+  fontsize=20;
+  label=<<B>Horizon Capital — Deployment View</B><BR/><FONT POINT-SIZE="12" COLOR="#666666">Docker Compose (local) and AWS ECS Fargate (cloud) deployments</FONT>>;
+
+  /* ---------- Users / Clients ---------- */
+  internet [label=<🌐<BR/><B>Internet</B><BR/><FONT POINT-SIZE="9">operators · reviewers</FONT>>,
+            shape=ellipse, fillcolor="#fff7d6"];
+
+  /* ---------- Edge layer ---------- */
+  subgraph cluster_edge {
+    label=<<B>Edge / Ingress</B>>;
+    style="rounded,filled"; fillcolor="#fff3e8"; color="#d97a2c"; fontsize=12;
+    alb   [label=<<B>AWS ALB</B><BR/><FONT POINT-SIZE="9">cloud</FONT>>, shape=box3d, fillcolor="#ffd9b3"];
+    nginx [label=<<B>nginx 1.27</B><BR/><FONT POINT-SIZE="9">local · :80/:443</FONT>>, shape=box3d, fillcolor="#ffd9b3"];
+  }
+
+  /* ---------- Application layer ---------- */
+  subgraph cluster_app {
+    label=<<B>Application Containers</B>>;
+    style="rounded,filled"; fillcolor="#e5f0ff"; color="#3a7adf"; fontsize=12;
+    web1  [label=<<B>web (FastAPI)</B><BR/><FONT POINT-SIZE="9">uvicorn · replicas≥2<BR/>request-id · /healthz /readyz<BR/>/metrics · /version</FONT>>,
+           shape=box, fillcolor="#d6e6ff", width=2.6];
+    web2  [label=<<B>web (FastAPI)</B><BR/><FONT POINT-SIZE="9">uvicorn · replicas≥2</FONT>>,
+           shape=box, fillcolor="#d6e6ff", width=2.6];
+    worker [label=<<B>worker</B><BR/><FONT POINT-SIZE="9">scheduler_worker.py<BR/>plan supervision · balance loop<BR/>(leader election → replicas&gt;1)</FONT>>,
+           shape=box, fillcolor="#d6e6ff", width=2.6];
+  }
+
+  /* ---------- Data layer ---------- */
+  subgraph cluster_data {
+    label=<<B>Data Layer</B>>;
+    style="rounded,filled"; fillcolor="#dff5e2"; color="#3a9d4a"; fontsize=12;
+    pg    [label=<<B>postgres 16</B><BR/><FONT POINT-SIZE="9">firm state · journal · trades<BR/>(local: container · cloud: RDS)</FONT>>,
+           shape=cylinder, fillcolor="#b9e6c2", width=2.2];
+    redis [label=<<B>redis 7</B><BR/><FONT POINT-SIZE="9">rate limit · cache · pub/sub<BR/>(local: container · cloud: ElastiCache)</FONT>>,
+           shape=cylinder, fillcolor="#b9e6c2", width=2.2];
+    vec   [label=<<B>sqlite (RAG vectors)</B><BR/><FONT POINT-SIZE="9">policy · news · filings · past_plans<BR/>(roadmap: pgvector)</FONT>>,
+           shape=cylinder, fillcolor="#b9e6c2", width=2.2];
+    ckpt  [label=<<B>sqlite (LangGraph)</B><BR/><FONT POINT-SIZE="9">checkpoints survive restart</FONT>>,
+           shape=cylinder, fillcolor="#b9e6c2", width=2.2];
+  }
+
+  /* ---------- Observability ---------- */
+  subgraph cluster_obs {
+    label=<<B>Observability</B>>;
+    style="rounded,filled"; fillcolor="#fde7e7"; color="#c83a3a"; fontsize=12;
+    prom  [label=<<B>Prometheus</B><BR/><FONT POINT-SIZE="9">scrape /metrics<BR/>baseline alerts</FONT>>,
+           shape=box, fillcolor="#fbd0d0"];
+    graf  [label=<<B>Grafana</B><BR/><FONT POINT-SIZE="9">pre-provisioned dashboards<BR/>admin / admin</FONT>>,
+           shape=box, fillcolor="#fbd0d0"];
+    logs  [label=<<B>JSON stdout</B><BR/><FONT POINT-SIZE="9">request-id correlation<BR/>(local: docker logs · cloud: CloudWatch)</FONT>>,
+           shape=note, fillcolor="#ffe2c2"];
+  }
+
+  /* ---------- External APIs ---------- */
+  subgraph cluster_ext {
+    label=<<B>External Services (keyless where possible)</B>>;
+    style="rounded,filled"; fillcolor="#f0e6fa"; color="#7a4fb0"; fontsize=12;
+    yf    [label=<<B>yfinance</B><BR/><FONT POINT-SIZE="9">equities</FONT>>, shape=ellipse, fillcolor="#e1d3f5"];
+    edgar [label=<<B>SEC EDGAR</B><BR/><FONT POINT-SIZE="9">filings</FONT>>, shape=ellipse, fillcolor="#e1d3f5"];
+    cg    [label=<<B>CoinGecko</B><BR/><FONT POINT-SIZE="9">crypto</FONT>>, shape=ellipse, fillcolor="#e1d3f5"];
+    fk    [label=<<B>Frankfurter</B><BR/><FONT POINT-SIZE="9">FX/rates</FONT>>, shape=ellipse, fillcolor="#e1d3f5"];
+    oai   [label=<<B>OpenAI</B><BR/><FONT POINT-SIZE="9">LLM (optional)<BR/>USE_MOCK_LLM=1 to bypass</FONT>>, shape=ellipse, fillcolor="#e1d3f5"];
+  }
+
+  /* ---------- CI / IaC ---------- */
+  subgraph cluster_cicd {
+    label=<<B>CI / IaC</B>>;
+    style="rounded,filled"; fillcolor="#fef9e7"; color="#e8c84a"; fontsize=12;
+    gh    [label=<<B>GitHub Actions</B><BR/><FONT POINT-SIZE="9">lint · pytest · eval<BR/>build · push · deploy (OIDC)</FONT>>, shape=box, fillcolor="#fff7d6"];
+    tf    [label=<<B>Terraform</B><BR/><FONT POINT-SIZE="9">VPC · RDS · ElastiCache<BR/>ECR · ECS · ALB · IAM</FONT>>, shape=box, fillcolor="#fff7d6"];
+    k8s   [label=<<B>Kustomize</B><BR/><FONT POINT-SIZE="9">base + overlays<BR/>HPA · PDB · NetworkPolicy · PSA</FONT>>, shape=box, fillcolor="#fff7d6"];
+  }
+
+  /* ---------- Edges ---------- */
+  internet -> alb     [label=" :443 ", color="#a04020", penwidth=2.0];
+  internet -> nginx   [label=" :80 ",  color="#a04020", penwidth=1.6];
+
+  alb -> web1         [color="#3a7adf", penwidth=1.6];
+  alb -> web2         [color="#3a7adf", penwidth=1.6];
+  nginx -> web1       [color="#3a7adf", penwidth=1.6];
+  nginx -> web2       [color="#3a7adf", penwidth=1.6];
+
+  web1 -> pg          [color="#3a9d4a"];
+  web2 -> pg          [color="#3a9d4a"];
+  worker -> pg        [color="#3a9d4a"];
+
+  web1 -> redis       [color="#3a9d4a", style=dashed];
+  web2 -> redis       [color="#3a9d4a", style=dashed];
+  worker -> redis     [color="#3a9d4a", style=dashed];
+
+  web1 -> vec         [color="#3a9d4a", style=dotted];
+  worker -> vec       [color="#3a9d4a", style=dotted];
+  worker -> ckpt      [color="#3a9d4a", style=dotted];
+
+  web1 -> oai         [color="#7a4fb0", style=dashed];
+  worker -> yf        [color="#7a4fb0", style=dashed];
+  worker -> edgar     [color="#7a4fb0", style=dashed];
+  worker -> cg        [color="#7a4fb0", style=dashed];
+  worker -> fk        [color="#7a4fb0", style=dashed];
+  worker -> oai       [color="#7a4fb0", style=dashed];
+
+  /* Metrics */
+  edge [color="#c83a3a", style=dashed, arrowhead=vee];
+  prom -> web1        [label=" /metrics ", dir=back];
+  prom -> web2        [dir=back];
+  prom -> worker      [dir=back];
+  graf -> prom        [label=" query "];
+
+  /* Logs */
+  edge [color="#c83a3a", style=dotted];
+  web1 -> logs;
+  web2 -> logs;
+  worker -> logs;
+
+  /* CI/CD */
+  edge [color="#e8c84a", style=solid, arrowhead=normal, penwidth=1.6];
+  gh -> tf            [label=" plan/apply "];
+  gh -> alb           [label=" deploy "];
+  gh -> nginx         [label=" build "];
+  tf -> alb           [label=" provisions ", color="#d97a2c"];
+  k8s -> web1         [label=" alt. target ", color="#d97a2c", style=dashed];
+
+  /* Layout hints */
+  {rank=same; alb; nginx;}
+  {rank=same; web1; web2; worker;}
+  {rank=same; pg; redis; vec; ckpt;}
+  {rank=same; gh; tf; k8s;}
+}

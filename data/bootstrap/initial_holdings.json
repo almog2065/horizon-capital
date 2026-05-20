@@ -1,0 +1,44 @@
+{
+  "invested_gap_pct": 0.015,
+  "sector_target_ratio": 0.93,
+  "sectors": {
+    "Information Technology": [
+      {"ticker": "MSFT", "ref_price": 415.0},
+      {"ticker": "AAPL", "ref_price": 195.0},
+      {"ticker": "NVDA", "ref_price": 880.0},
+      {"ticker": "AVGO", "ref_price": 180.0}
+    ],
+    "Health Care": [
+      {"ticker": "LLY", "ref_price": 780.0},
+      {"ticker": "UNH", "ref_price": 520.0}
+    ],
+    "Financials": [
+      {"ticker": "JPM", "ref_price": 200.0},
+      {"ticker": "V", "ref_price": 280.0}
+    ],
+    "Consumer Discretionary": [
+      {"ticker": "AMZN", "ref_price": 185.0}
+    ],
+    "Communication Services": [
+      {"ticker": "META", "ref_price": 520.0}
+    ],
+    "Industrials": [
+      {"ticker": "CAT", "ref_price": 340.0}
+    ],
+    "Energy": [
+      {"ticker": "XOM", "ref_price": 110.0}
+    ],
+    "Materials": [
+      {"ticker": "LIN", "ref_price": 450.0}
+    ],
+    "Real Estate": [
+      {"ticker": "PLD", "ref_price": 120.0}
+    ],
+    "Commodities": [
+      {"ticker": "GLD", "ref_price": 220.0}
+    ],
+    "Digital Assets": [
+      {"ticker": "BTC", "ref_price": 95000.0}
+    ]
+  }
+}

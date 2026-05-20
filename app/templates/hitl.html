@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% from "_pipeline.html" import pipeline_bar %}
+{% from "_hitl_agent_outputs.html" import agent_outputs_block %}
+{% block content %}
+
+<h1 class="hitl-page-title">{{ brief.approval_headline }}</h1>
+<p class="hitl-subtitle">
+  Plan <a href="/plan/{{ plan.id }}">{{ plan.id }}</a> ·
+  {{ brief.position_type_label }} ·
+  <a href="/run/{{ run.run_id }}">{{ run.run_id }}</a>
+</p>
+
+<section class="card hitl-decision-banner">
+  <h2>What you are approving</h2>
+  <p class="hitl-approve-line">{{ brief.approval_headline }}</p>
+  <p class="muted">{{ brief.why_hitl }}</p>
+</section>
+
+<section class="hitl-grid">
+  <div class="card hitl-panel">
+    <h2>What happened</h2>
+    <ol class="hitl-timeline">
+    {% for step in brief.timeline %}
+      <li>
+        <span class="hitl-step-icon">{{ step.icon }}</span>
+        <div>
+          <strong>{{ step.title }}</strong>
+          {% if step.meta %}<span class="pill pill-small">{{ step.meta }}</span>{% endif %}
+          <p class="muted hitl-step-detail">{{ step.detail }}</p>
+        </div>
+      </li>
+    {% else %}
+      <li class="muted">No run context — see plan only.</li>
+    {% endfor %}
+    </ol>
+  </div>
+
+  <div class="card hitl-panel hitl-market-panel">
+    <h2>{{ plan.ticker }} — market snapshot</h2>
+    <div class="hitl-market-grid">
+      <div class="hitl-stat">
+        <span class="hitl-stat-label">Price</span>
+        <span class="hitl-stat-value">${{ '%.2f'|format(brief.market.price) }}</span>
+      </div>
+      <div class="hitl-stat">
+        <span class="hitl-stat-label">Entry ref.</span>
+        <span class="hitl-stat-value">${{ '%.2f'|format(brief.market.entry_price) }}</span>
+      </div>
+      <div class="hitl-stat">
+        <span class="hitl-stat-label">Return</span>
+        <span class="hitl-stat-value {% if brief.market.return_pct >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+          {{ '%.1f'|format(brief.market.return_pct * 100) }}%
+        </span>
+      </div>
+      <div class="hitl-stat">
+        <span class="hitl-stat-label">Size</span>
+        <span class="hitl-stat-value">{{ '%.1f'|format(brief.entry_pct_nav * 100) }}% NAV</span>
+      </div>
+      {% if brief.market.has_position %}
+      <div class="hitl-stat">
+        <span class="hitl-stat-label">Held</span>
+        <span class="hitl-stat-value">{{ brief.market.quantity }} sh</span>
+      </div>
+      {% endif %}
+      {% if brief.market.pe_ttm %}
+      <div class="hitl-stat">
+        <span class="hitl-stat-label">P/E</span>
+        <span class="hitl-stat-value">{{ '%.1f'|format(brief.market.pe_ttm) }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="hitl-pros-cons">
+  <div class="card hitl-pros">
+    <h2>✓ If you approve</h2>
+    <ul>
+    {% for p in brief.pros %}
+      <li>{{ p }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+  <div class="card hitl-cons">
+    <h2>✗ Risks / downsides</h2>
+    <ul>
+    {% for c in brief.cons %}
+      <li>{{ c }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+</section>
+
+{% if brief.pipeline %}
+<section class="card">
+  <h2>Pipeline so far</h2>
+  {{ pipeline_bar(brief.pipeline) }}
+</section>
+{% endif %}
+
+{% if brief.agent_outputs %}
+<section class="card hitl-agents-panel">
+  <h2>Agent outputs on this action</h2>
+  <p class="muted" style="margin-top:0">Full output from each agent that evaluated this trade before HITL.</p>
+  {{ agent_outputs_block(brief.agent_outputs) }}
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Plan details</h2>
+  <p>{{ plan.thesis.narrative }}</p>
+  <details>
+    <summary>Entry JSON</summary>
+    <pre>{{ plan.entry | tojson(indent=2) }}</pre>
+  </details>
+</section>
+
+<section class="card hitl-actions">
+  <h2>Your decision</h2>
+  <form method="post" action="/hitl/{{ item.item_id }}/resolve">
+    <label>Note (optional)
+      <textarea name="note" rows="2" style="width:100%"></textarea>
+    </label>
+    <div class="hitl-action-buttons">
+      <button type="submit" name="decision" value="approve" class="approve">Approve &amp; execute</button>
+      <button type="submit" name="decision" value="reject" class="reject">Reject</button>
+    </div>
+  </form>
+</section>
+
+<p><a href="/">← Dashboard</a></p>
+
+{% endblock %}

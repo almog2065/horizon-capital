@@ -1,0 +1,37 @@
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+venv
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Dev artefacts
+artifacts/
+*.sqlite
+*.db
+*.log
+
+# Editor / OS
+.idea
+.vscode
+.DS_Store
+
+# Build/test outputs
+build/
+dist/
+*.egg-info
+
+# Local secrets (use Docker secrets instead)
+.env
+.env.local
+.env.*.local
+
+# Docs that don't need to be in the image
+*.png
+*.svg
+*.dot
+Agentic_AI_Engineer_Home_Task__284_29.docx

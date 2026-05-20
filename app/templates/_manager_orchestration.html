@@ -1,0 +1,104 @@
+{# Portfolio Manager balance / orchestration — include where state is available #}
+{% set orch = state.manager_orchestration or state.orchestration %}
+{% if orch or state.firm_manager %}
+<section class="card manager-panel manager-orchestration-panel">
+  <h2>Portfolio Manager <span class="muted" style="font-size:13px;font-weight:400">policy &amp; routing</span></h2>
+  <p class="manager-role-note">The manager does not trade or open positions. Tasks below were routed to specialist agents; buy/sell/HITL decisions are made by them.</p>
+
+  {% if state.firm_manager %}
+  <p class="muted" style="margin-top:0">{{ state.firm_manager.book_summary or '' }}</p>
+  {% if state.firm_manager.scan_directives and state.firm_manager.scan_directives.narrative %}
+  <p style="font-size:13px"><strong>Scan focus:</strong> {{ state.firm_manager.scan_directives.narrative }}</p>
+  {% endif %}
+  {% if state.firm_manager.tasks %}
+  <details style="margin-bottom:12px">
+    <summary><strong>{{ state.firm_manager.tasks|length }}</strong> manager tasks</summary>
+    <ul class="manager-tasks" style="margin-top:8px">
+      {% for t in state.firm_manager.tasks[:12] %}
+      <li class="manager-task manager-priority-{{ t.priority or 'low' }}">
+        <span class="manager-task-type">{{ t.type }}</span>
+        {% if t.ticker %}<strong>{{ t.ticker }}</strong>{% elif t.sector %}<em>{{ t.sector }}</em>{% endif %}
+        <span class="muted"> — {{ (t.rationale or '')[:160] }}{% if (t.rationale or '')|length > 160 %}…{% endif %}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+  {% endif %}
+
+  {% if orch %}
+  {% if not orch.executed %}
+  <p class="muted"><strong>Auto-trigger:</strong> off — {{ orch.reason or 'no orchestration run' }}</p>
+  {% else %}
+  <p>
+    <strong>Triggered runs:</strong> {{ (orch.spawned_run_ids or [])|length }}
+    {% if orch.cap is defined %} · cap {{ orch.cap }}{% endif %}
+    {% if orch.manager_id %} · {{ orch.manager_id }}{% endif %}
+  </p>
+  {% if orch.spawned_run_ids %}
+  <p class="orch-run-links">
+    {% for rid in orch.spawned_run_ids %}
+      <a href="/run/{{ rid }}" class="pill pill-small">{{ rid }}</a>
+    {% endfor %}
+  </p>
+  {% endif %}
+
+  {% if orch.actions %}
+  <h3 style="font-size:14px;margin:16px 0 8px">Agent runs spawned (not trades)</h3>
+  <table>
+    <thead>
+      <tr><th>Type</th><th>Ticker</th><th>Run</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+    {% for a in orch.actions %}
+      <tr>
+        <td><code>{{ a.type }}</code></td>
+        <td>{{ a.ticker or a.sector or '—' }}</td>
+        <td>
+          {% if a.run_id %}<a href="/run/{{ a.run_id }}">{{ a.run_id }}</a>{% else %}—{% endif %}
+          {% if a.downstream %}
+            <br><span class="muted">↓ {% for dr in a.downstream %}<a href="/run/{{ dr }}">{{ dr }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</span>
+          {% endif %}
+        </td>
+        <td><small class="muted">{{ a.reason or '' }}</small></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if orch.skipped %}
+  <details style="margin-top:12px">
+    <summary><strong>{{ orch.skipped|length }}</strong> skipped (guards / cooldown / cap)</summary>
+    <table style="margin-top:8px">
+      <thead><tr><th>Type</th><th>Ticker</th><th>Reason</th></tr></thead>
+      <tbody>
+      {% for s in orch.skipped %}
+        <tr>
+          <td><code>{{ s.type or '—' }}</code></td>
+          <td>{{ s.ticker or s.sector or '—' }}</td>
+          <td><small>{{ s.reason }}</small></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </details>
+  {% endif %}
+  {% endif %}
+  {% endif %}
+
+  {% if state.supervision_run_id %}
+  <p style="margin-top:12px"><strong>Plan supervision:</strong>
+    <a href="/run/{{ state.supervision_run_id }}">{{ state.supervision_run_id }}</a>
+  </p>
+  {% endif %}
+
+  {% if state.balance_spawned_run_ids and not orch %}
+  <p><strong>Balance triggers (pre-scan):</strong>
+    {% for rid in state.balance_spawned_run_ids %}
+      <a href="/run/{{ rid }}">{{ rid }}</a>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </p>
+  {% endif %}
+</section>
+{% endif %}

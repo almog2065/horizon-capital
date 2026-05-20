@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Plan supervision</h1>
+<p class="muted">Automatic stewardship for <strong>every</strong> plan in
+<code>draft</code>, <code>pending_hitl</code>, or <code>active</code> — with or
+without an open position. Each cycle runs Position Monitor (if held) + Plan
+Supervisor, then applies actions: log, flag, HITL queue, pipeline re-eval, or
+authorized execution.</p>
+
+{% if auto_supervision %}
+<p class="muted"><strong>Auto mode ON</strong> — background cycle every
+{{ supervision_interval_min }} minutes
+(auto_execute={{ 'yes' if auto_execute else 'no' }}).</p>
+{% else %}
+<p class="muted">Set <code>AUTO_PLAN_SUPERVISION=1</code> in .env for background cycles.</p>
+{% endif %}
+
+<div class="card trigger-actions">
+  <h2>Run supervision now</h2>
+  <p>Supervisable plans in DB: <strong>{{ plans_count }}</strong> ·
+     Open positions: <strong>{{ holdings_count }}</strong></p>
+  <form method="post" action="/monitor/run">
+    <label>
+      <input type="checkbox" name="spawn_pipeline" value="yes" checked>
+      Spawn Fundamental → Plan → Risk pipeline on breaches
+    </label>
+    <label>
+      <input type="checkbox" name="auto_execute" value="yes">
+      Auto-execute entry when supervisor + policy allow (active plan, no fill yet)
+    </label>
+    <button type="submit" class="btn-full">Run plan supervision</button>
+  </form>
+</div>
+
+{% if last_monitor %}
+<div class="card">
+  <h2>Last supervision run</h2>
+  <p>
+    <a href="/run/{{ last_monitor.run_id }}">{{ last_monitor.run_id }}</a>
+    · {{ last_monitor.status }} · {{ last_monitor.as_of }}
+  </p>
+  {% set st = last_monitor.state %}
+  <p>
+    Plans <strong>{{ st.plans_evaluated or st.positions_evaluated or 0 }}</strong> ·
+    OK <strong>{{ st.plans_healthy or st.positions_healthy or 0 }}</strong> ·
+    Action <strong>{{ st.plans_need_action or st.positions_action_required or 0 }}</strong> ·
+    Downstream <strong>{{ (st.spawned_run_ids or [])|length }}</strong>
+  </p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Supervisor verdicts</h2>
+  <table>
+    <thead><tr><th>Verdict</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>monitor_only</code></td><td>Healthy — logged only</td></tr>
+      <tr><td><code>awaiting_operator</code></td><td>HITL required (maiden, pending_hitl, draft)</td></tr>
+      <tr><td><code>authorize_execution</code></td><td>May fill if auto_execute enabled</td></tr>
+      <tr><td><code>trigger_pipeline</code></td><td>Re-open analyst cascade</td></tr>
+      <tr><td><code>freeze_plan</code></td><td>Data/sim/window failure — no trade</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p><a href="/">← Dashboard</a></p>
+
+{% endblock %}

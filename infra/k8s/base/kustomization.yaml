@@ -1,0 +1,29 @@
+# Horizon Capital — base Kustomize manifests.
+# Overlays under ../overlays/<env> patch image tags, replicas, and resources.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: horizon-capital
+
+commonLabels:
+  app.kubernetes.io/part-of: horizon-capital
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - postgres.yaml
+  - redis.yaml
+  - web-deployment.yaml
+  - web-service.yaml
+  - worker-deployment.yaml
+  - ingress.yaml
+  - hpa.yaml
+  - networkpolicy.yaml
+  - pdb.yaml
+
+images:
+  - name: horizon-capital
+    newTag: latest

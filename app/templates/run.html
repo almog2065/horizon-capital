@@ -1,0 +1,481 @@
+{% extends "base.html" %}
+{% from "_pipeline.html" import pipeline_bar %}
+{% from "_trace_pipeline.html" import trace_pipeline %}
+{% from "_trace_pipeline_calls.html" import call_inventory %}
+{% block head %}
+{% if is_running %}
+<meta http-equiv="refresh" content="2">
+{% endif %}
+{% endblock %}
+{% block content %}
+
+<h1>Run {{ run.run_id }}</h1>
+{% if can_rerun %}
+<form method="post" action="/run/{{ run.run_id }}/rerun" class="rerun-actions">
+  <button type="submit" class="button">↻ Rerun</button>
+  <span class="muted">Same trigger — new run{% if run.trigger_type == 'idea_scan' %} (scan runs in background){% endif %}</span>
+</form>
+{% endif %}
+<p>
+  <strong>Trigger:</strong> {{ run.trigger_type }} &middot;
+  <strong>Status:</strong> <span class="status status-{{ run.status }}">{{ run.status }}</span> &middot;
+  <strong>As of:</strong> {{ run.as_of }} &middot;
+  <strong>Final:</strong> {{ state.final_status or '—' }}
+</p>
+
+{{ pipeline_bar(pipeline) }}
+
+{% if run_progress and (run_progress.current_stage or run_progress.waiting_on) %}
+<section class="card run-progress-card {% if run_progress.is_stuck %}run-progress-stuck{% endif %}">
+  <h2 style="margin-top:0">
+    {% if run_progress.is_stuck %}⚠ Run appears stuck{% else %}▶ In progress{% endif %}
+  </h2>
+  {% if run_progress.current_stage %}
+  <p><strong>Active step:</strong> {{ run_progress.current_stage.label }}
+    {% if run_progress.current_stage.meta %}
+    <span class="muted">— {{ run_progress.current_stage.meta }}</span>
+    {% endif %}
+  </p>
+  {% elif run_progress.waiting_on %}
+  <p><strong>Waiting on:</strong> {{ run_progress.waiting_on }}</p>
+  {% endif %}
+  {% if run_progress.last_agent %}
+  <p class="muted">Last agent: <code>{{ run_progress.last_agent }}</code></p>
+  {% endif %}
+  {% if run_progress.is_stuck %}
+  <p class="status-explainer status-warn" style="margin:8px 0 0">
+    No progress for {{ (run_progress.idle_sec // 60)|int }}m+ (run age {{ (run_progress.age_sec // 60)|int }}m).
+    Check journal / traces below, or use <strong>Close stuck runs</strong> on the dashboard.
+  </p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if is_running %}
+<p class="muted"><em>Page auto-refreshes every 2 seconds while run is in progress…</em></p>
+{% endif %}
+
+{# Decode the final_status so the user understands why the run ended where it did. #}
+{% set status_explanations = {
+  "completed_position_opened": ("✅ Position opened", "Risk approved the plan, HITL was approved (by you or auto-approved via Full pipeline), then Execution simulated a fill → holdings updated.", "good"),
+  "awaiting_hitl": ("⏸ Awaiting operator decision", "Risk Officer approved the plan. The operator must approve or reject before execution.", "pending"),
+  "completed_hitl_rejected": ("✋ Plan rejected by operator", "Operator rejected the plan at HITL. No position opened.", "neutral"),
+  "completed_superseded": ("🗂 Superseded", "Duplicate HITL or plan was removed during queue cleanup. No action required.", "neutral"),
+  "completed_duplicate_work_suppressed": ("⏭ Skipped duplicate", "Another open plan or pending HITL already exists for this ticker.", "neutral"),
+  "completed_risk_rejected": ("🛑 Plan rejected by Risk Officer", "The plan violated firm policy (e.g., position sizing, sector concentration). Did not reach HITL.", "warn"),
+  "completed_no_plan_move_to_watchlist": ("📋 Routed to watchlist", "Fundamental Analyst concluded the thesis is moderate or the catalyst is not strong enough to open a position now. Ticker added to watchlist for periodic review. This is correct behavior on uncertain/bearish news.", "neutral"),
+  "completed_no_plan_no_action": ("⏹ No action", "Fundamental Analyst concluded no actionable thesis. Flow stopped before Plan Builder.", "neutral"),
+  "completed_no_plan_propose_thesis_review": ("🔍 Existing thesis under review", "An event-triggered review of a held position concluded the thesis is weakening. Flagged for operator review.", "warn"),
+  "completed_plan_not_eligible": ("⚠ Plan not eligible", "Plan Builder rejected the draft: failed an eligibility gate (market cap, seasoning, sim_order infeasibility).", "warn"),
+  "completed_no_action_act": ("❓ Unexpected stop", "Triage said 'act' but flow stopped. Check journal for details.", "warn"),
+  "completed_no_action_watch": ("👀 Triage said WATCH", "News scored 0.4-0.69 materiality — logged but doesn't justify an agent cascade.", "neutral"),
+  "completed_no_action_ignore": ("🔇 Triage said IGNORE", "News not material (off-universe or low score). Flow stopped immediately.", "neutral"),
+  "completed_no_target": ("❓ No impacted ticker", "Triage marked 'act' but couldn't map to a universe ticker.", "warn"),
+  "completed_idea_scan": ("💡 Idea scan complete", "Idea Generator ranked candidates and (optionally) routed top picks downstream through Fundamental → Plan → Risk → HITL.", "good"),
+  "completed_position_monitor": ("📡 Position monitor complete", "Each holding was checked against its plan monitoring rules and guardrails. Breaches may have spawned downstream review runs or plan history flags.", "good"),
+  "completed_plan_supervision": ("🛡 Plan supervision complete", "Every draft / pending_hitl / active plan was evaluated by Position Monitor (if held) and Plan Supervisor. Actions may include HITL routing, pipeline re-eval, or authorized execution.", "good"),
+  "completed_firm_balance": ("⚖ Policy routing cycle", "Portfolio Manager set firm policy focus and spawned specialist agent runs (scan / review). No trades or positions opened by the manager.", "good"),
+  "completed_supervisor_blocked": ("🛑 Supervisor blocked execution", "Operator approved at HITL but Plan Supervisor did not authorize execution (policy, data, or maiden rules).", "warn"),
+  "completed_stale_running": ("⏱ Marked stale", "Run exceeded max running time and was closed by recovery — it was stuck without finishing.", "warn"),
+  "skipped_overlap": ("⏭ Skipped", "Another supervision cycle was already running.", "neutral"),
+  "error": ("🚨 Error", "Run crashed. See errors below.", "bad"),
+} %}
+{% if state.final_status %}
+{% set se = status_explanations.get(state.final_status, (state.final_status, "Final state.", "neutral")) %}
+<section class="card status-explainer status-{{ se[2] }}">
+  <h2>{{ se[0] }}</h2>
+  <p>{{ se[1] }}</p>
+  <p class="muted">Final status code: <code>{{ state.final_status }}</code></p>
+</section>
+{% endif %}
+
+{% include "_manager_orchestration.html" %}
+
+{% if state.news_item %}
+<section class="card">
+  <h2>Triggering news</h2>
+  <p><strong>{{ state.news_item.headline }}</strong></p>
+  <p>{{ state.news_item.body }}</p>
+  <p class="muted">tickers: {{ state.news_item.tickers|join(', ') }} | source: {{ state.news_item.source }}</p>
+</section>
+{% endif %}
+
+{% if state.plan_evaluations %}
+<section class="card">
+  <h2>Plan supervision</h2>
+  <p>
+    Plans <strong>{{ state.plans_evaluated }}</strong> ·
+    Healthy <strong>{{ state.plans_healthy or 0 }}</strong> ·
+    Need action <strong>{{ state.plans_need_action or 0 }}</strong> ·
+    Executions <strong>{{ state.executions_triggered or 0 }}</strong>
+  </p>
+  {% if state.spawned_run_ids %}
+  <p><strong>Spawned runs:</strong>
+    {% for rid in state.spawned_run_ids %}
+      <a href="/run/{{ rid }}">{{ rid }}</a>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </p>
+  {% endif %}
+  <table>
+    <thead>
+      <tr><th>Ticker</th><th>Status</th><th>Phase</th><th>Supervisor</th><th>Execute?</th></tr>
+    </thead>
+    <tbody>
+    {% for e in state.plan_evaluations %}
+      {% set s = e.supervisor_report or {} %}
+      <tr>
+        <td><strong>{{ e.ticker }}</strong>
+          <br><a href="/plan/{{ e.plan_id }}" class="muted">{{ e.plan_id[:16] }}…</a></td>
+        <td>{{ e.plan_status }}</td>
+        <td>{{ e.phase }}</td>
+        <td><code>{{ s.verdict or '—' }}</code></td>
+        <td>{% if s.execution_authorized %}yes{% else %}no{% endif %}
+          {% if s.hitl_required %} · HITL{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if state.plan_failures %}
+  <p class="muted" style="margin-top:12px"><strong>Plan errors ({{ state.plan_failures|length }})</strong></p>
+  <ul>
+  {% for err in state.plan_failures %}
+    <li class="error">{{ err }}</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if state.errors %}
+<section class="card">
+  <h2>Errors</h2>
+  <ul>
+  {% for err in state.errors %}
+    <li><pre style="white-space:pre-wrap;margin:0;font-size:12px">{{ err }}</pre></li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if state.position_reports and not state.plan_evaluations %}
+<section class="card">
+  <h2>Position monitor results</h2>
+  <p>
+    Evaluated <strong>{{ state.positions_evaluated }}</strong> ·
+    Healthy <strong>{{ state.positions_healthy or 0 }}</strong> ·
+    Need action <strong>{{ state.positions_action_required or 0 }}</strong>
+  </p>
+  {% if state.spawned_run_ids %}
+  <p><strong>Downstream:</strong>
+    {% for rid in state.spawned_run_ids %}
+      <a href="/run/{{ rid }}">{{ rid }}</a>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </p>
+  {% endif %}
+  <table>
+    <thead>
+      <tr><th>Ticker</th><th>Status</th><th>Return</th><th>% NAV</th><th>Breaches</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+    {% for r in state.position_reports %}
+      <tr>
+        <td><strong>{{ r.ticker }}</strong></td>
+        <td><span class="status status-{{ r.overall_status }}">{{ r.overall_status }}</span></td>
+        <td>{{ '%.1f'|format((r.market_snapshot.return_pct or 0) * 100) }}%</td>
+        <td>{{ '%.1f'|format((r.market_snapshot.pct_nav or 0) * 100) }}%</td>
+        <td>{{ (r.breaches or [])|length }}</td>
+        <td>
+          {% for a in r.recommended_actions or [] %}
+            <code>{{ a.action }}</code>{% if not loop.last %}, {% endif %}
+          {% else %}—{% endfor %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% for r in state.position_reports %}
+    {% if r.breaches %}
+    <details style="margin-top:0.5rem">
+      <summary>{{ r.ticker }} — breaches</summary>
+      <ul>
+      {% for b in r.breaches %}
+        <li><strong>{{ b.check_name }}</strong>: {{ b.detail }}</li>
+      {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if state.idea_scan %}
+<section class="card">
+  <h2>Idea scan</h2>
+  <p class="muted">{{ state.idea_scan.reasoning_narrative }}</p>
+  <p>
+    Universe <strong>{{ state.idea_scan.universe_size or '—' }}</strong> ·
+    Evaluated <strong>{{ state.idea_scan.candidates_evaluated }}</strong> ·
+    Passed screen <strong>{{ state.idea_scan.candidates_passed_screen }}</strong> ·
+    Top picks routed downstream <strong>{{ (state.idea_scan.top_picks or [])|length }}</strong>
+  </p>
+  {% if state.idea_scan.discovery %}
+    {% set d = state.idea_scan.discovery %}
+    <p class="muted">
+      <strong>Discovery layer:</strong>
+      EDGAR <code>{{ d.edgar_status or 'n/a' }}</code>
+      · {{ d.edgar_filings_count or 0 }} 8-K filings parsed
+      · <strong>{{ d.api_additions or 0 }}</strong> new tickers added
+      {% if d.edgar_new_tickers %}({{ d.edgar_new_tickers|join(', ') }}){% endif %}
+      {% if d.edgar_error %}— <em>error: {{ d.edgar_error }}</em>{% endif %}
+    </p>
+  {% endif %}
+  {% if state.idea_scan.excluded_already_held or state.idea_scan.excluded_recently_suggested %}
+    <p class="muted">
+      <strong>Excluded for novelty:</strong>
+      {% if state.idea_scan.excluded_already_held %}
+        already held: {{ state.idea_scan.excluded_already_held|join(', ') }}.
+      {% endif %}
+      {% if state.idea_scan.excluded_recently_suggested %}
+        recently suggested ({{ state.idea_scan.novelty_window_days }} days):
+        {{ state.idea_scan.excluded_recently_suggested|join(', ') }}.
+      {% endif %}
+    </p>
+  {% endif %}
+
+  {% if state.idea_scan.top_picks %}
+  <h3>Top picks — research briefs</h3>
+  {% for p in state.idea_scan.top_picks %}
+    <details class="card sample" {% if loop.first %}open{% endif %}>
+      <summary>
+        <strong>{{ p.ticker }}</strong> · composite {{ '%.2f'|format(p.composite_score) }}
+        · {{ p.recommended_action }}
+        {% if (p.novelty or {}).is_new %}<span class="pill pill-small">NEW</span>{% endif %}
+      </summary>
+      {% if p.research_brief %}
+        {% set b = p.research_brief %}
+        <p><strong>Summary.</strong> {{ b.executive_summary }}</p>
+        <p><strong>Business.</strong> {{ b.business_overview }}</p>
+        <p><strong>Why now.</strong> {{ b.why_now }}</p>
+        <p><strong>Key fundamentals.</strong>
+          op margin {{ '%.1f'|format((b.key_fundamentals.operating_margin or 0)*100) }}%,
+          growth {{ '%.1f'|format((b.key_fundamentals.revenue_growth_yoy or 0)*100) }}%,
+          PE {{ '%.1f'|format(b.key_fundamentals.pe_ttm or 0) }},
+          FCF yield {{ '%.1f'|format(b.key_fundamentals.fcf_yield_pct or 0) }}% —
+          <em>{{ b.key_fundamentals.valuation_interpretation }}</em>
+        </p>
+        <p><strong>Positive catalysts.</strong></p>
+        <ul>
+        {% for c in (b.catalysts.positive or []) %}<li>{{ c }}</li>{% endfor %}
+        </ul>
+        {% if b.catalysts.negative %}
+        <p><strong>Negative catalysts / concerns.</strong></p>
+        <ul>
+        {% for c in b.catalysts.negative %}<li>{{ c }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+        <p><strong>Risks.</strong></p>
+        <ul>
+        {% for r in (b.risks or []) %}<li>{{ r }}</li>{% endfor %}
+        </ul>
+        <p><strong>Competitive position.</strong> {{ b.competitive_position }}</p>
+        <p><strong>Suggested entry.</strong>
+          {{ '%.1f'|format((b.suggested_entry.target_size_pct_nav or 0)*100) }}% NAV
+          · {{ b.suggested_entry.entry_type }}
+          · horizon {{ b.suggested_entry.horizon }}
+          · research depth: <strong>{{ b.recommended_research_depth }}</strong>
+        </p>
+        <p class="muted"><strong>Sources cited:</strong>
+          {% for s in (b.sources or []) %}
+            <code>{{ s.ref }}</code> ({{ s.source_type }} → {{ s.what_it_supports }}){% if not loop.last %}, {% endif %}
+          {% endfor %}
+        </p>
+      {% endif %}
+    </details>
+  {% endfor %}
+  {% endif %}
+
+  {% if state.idea_scan.ranked_candidates %}
+  <h3>Full ranking</h3>
+  <table>
+    <thead><tr><th>Ticker</th><th>Composite</th><th>Q</th><th>V</th><th>P</th><th>F</th><th>Action</th><th>New?</th><th>Rationale</th></tr></thead>
+    <tbody>
+    {% for c in state.idea_scan.ranked_candidates %}
+      <tr>
+        <td><strong>{{ c.ticker }}</strong></td>
+        <td>{{ '%.2f'|format(c.composite_score or 0) }}</td>
+        <td>{{ '%.2f'|format((c.scores or {}).get('quality_score', 0)) }}</td>
+        <td>{{ '%.2f'|format((c.scores or {}).get('valuation_score', 0)) }}</td>
+        <td>{{ '%.2f'|format((c.scores or {}).get('precedent_score', 0)) }}</td>
+        <td>{{ '%.2f'|format((c.scores or {}).get('fit_score', 0)) }}</td>
+        <td>{{ c.recommended_action }}</td>
+        <td>{{ 'yes' if (c.novelty or {}).get('is_new') else (c.novelty or {}).get('times_previously_seen', 0) }}</td>
+        <td><small>{{ (c.rationale or '')[:140] }}</small></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if state.downstream_run_ids %}
+  <p><strong>Downstream runs (scan picks):</strong>
+    {% for rid in state.downstream_run_ids %}
+      <a href="/run/{{ rid }}">{{ rid }}</a>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if langsmith_on %}
+<p class="muted">LangSmith: traces export to project <strong>{{ ls_status.langsmith_project if ls_status else 'horizon-capital' }}</strong>
+with nested <code>chain</code> → <code>tool</code> / <code>llm</code> / <code>retriever</code> spans.</p>
+{% endif %}
+
+{{ trace_pipeline(trace_pipeline) }}
+
+<h2>Agent journal</h2>
+{% for j in journal %}
+<section class="card agent-step">
+  <div class="agent-head">
+    <h3>{{ j.agent }} <span class="muted">({{ j.duration_ms }} ms)</span></h3>
+    <div class="agent-meta">
+      <span class="pill">{{ j.llm_calls }} LLM call{{ '' if j.llm_calls==1 else 's' }}</span>
+      <span class="pill">{{ j.tool_calls }} tool call{{ '' if j.tool_calls==1 else 's' }}</span>
+      {% if j.rag_calls %}<span class="pill pill-rag">{{ j.rag_calls }} RAG</span>{% endif %}
+      {% if j.audit %}
+      <span class="audit-badge severity-{{ j.audit_severity }}">
+        Auditor: {{ j.audit.overall_severity }}
+        {% if j.audit.compliant %}· compliant
+        {% else %}· {{ j.audit.findings|length }} finding(s){% endif %}
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if j.call_inventory %}
+  {{ call_inventory(j.call_inventory) }}
+  {% endif %}
+
+  <details>
+    <summary>output ({{ j.output|tojson|length }} chars)</summary>
+    <pre>{{ j.output | tojson(indent=2) }}</pre>
+  </details>
+
+  {% if j.traces %}
+  <details>
+    <summary>traces ({{ j.traces|length }})</summary>
+    <div class="trace-list">
+    {% for t in j.traces %}
+      <div class="trace trace-{{ t.event_type }}">
+        <div class="trace-head">
+          <span class="trace-type">{{ t.event_type }}</span>
+          {% if t.event_data.tool %}<span class="trace-name">{{ t.event_data.tool }}</span>{% endif %}
+          {% if t.event_data.corpus %}<span class="trace-name rag-corpus">{{ t.event_data.corpus }}</span>{% endif %}
+          {% if t.event_data.purpose %}<span class="trace-name">{{ t.event_data.purpose }}</span>{% endif %}
+          {% if t.event_data.mode %}<span class="pill pill-small">{{ t.event_data.mode }}</span>{% endif %}
+          <span class="muted">{{ t.duration_ms }} ms</span>
+        </div>
+        {% if t.event_type == 'rag_retrieval' %}
+          <div class="trace-body trace-rag">
+            <div><strong>query:</strong> {{ t.event_data.query }}</div>
+          </div>
+        {% elif t.event_type == 'llm_call' %}
+          <div class="trace-body">
+            <details open><summary>system / user / response</summary>
+            <pre>{{ t.event_data.system or t.event_data.system_preview }}</pre>
+            <pre>{{ t.event_data.user or t.event_data.user_preview }}</pre>
+            <pre>{{ t.event_data.response or t.event_data.response_preview }}</pre>
+            </details>
+            {% if t.event_data.error %}<div class="error">ERROR: {{ t.event_data.error }}</div>{% endif %}
+          </div>
+        {% elif t.event_type == 'tool_call' %}
+          <div class="trace-body">
+            <div><strong>args:</strong> {{ t.event_data.args | join(', ') }}</div>
+            {% if t.event_data.kwargs %}<div><strong>kwargs:</strong> {{ t.event_data.kwargs }}</div>{% endif %}
+            <details>
+              <summary>result preview</summary>
+              <pre>{{ t.event_data.result_preview or t.event_data.error }}</pre>
+            </details>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+
+  {% if j.audit and j.audit.findings %}
+  <details>
+    <summary>audit findings ({{ j.audit.findings|length }})</summary>
+    <ul>
+    {% for f in j.audit.findings %}
+      <li><strong>{{ f.severity }}</strong> — {{ f.deviation }} <em>({{ f.policy_section }})</em></li>
+    {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if state.routing_decision == 'autonomous_execution' %}
+<section class="card status-explainer status-good">
+  <h2>Risk Officer — autonomous execution (no HITL)</h2>
+  <p>Agents decided operator sign-off was <strong>not required</strong>.
+  {% if state.hitl_decision %}
+  Routing: <code>{{ state.hitl_decision.routing }}</code> ·
+  verdict: <code>{{ state.hitl_decision.verdict }}</code>
+  {% endif %}
+  See the Risk Officer journal entry for reasoning.</p>
+</section>
+{% endif %}
+
+{% if state.routing_decision == 'operator_hitl_approved' %}
+<section class="card status-explainer status-good">
+  <h2>Operator approved HITL → execution</h2>
+  <p>You approved this plan in the HITL queue; execution ran afterward.</p>
+</section>
+{% endif %}
+
+{% if state.final_status == 'awaiting_hitl' and plan %}
+<section class="card hitl-cta">
+  <h2>⏸ Awaiting HITL approval</h2>
+  <p>Plan {{ plan.id }} for {{ plan.ticker }} requires operator sign-off before execution.</p>
+  <p class="muted">Open the <a href="/">dashboard</a> → HITL queue → approve or reject.
+  Execution runs only after you approve.</p>
+</section>
+{% endif %}
+
+{% if plan %}
+<h2>Resulting plan</h2>
+<section class="card">
+  <p><a href="/plan/{{ plan.id }}">{{ plan.id }}</a> — {{ plan.ticker }} —
+     <span class="status status-{{ plan.status }}">{{ plan.status }}</span></p>
+  {% if can_rerun and run.trigger_type == 'news_event' %}
+  <form method="post" action="/plan/{{ plan.id }}/rerun" class="rerun-actions" style="margin-top:8px">
+    <button type="submit" class="button">↻ Rerun pipeline</button>
+    <span class="muted">New run after risk reject / HITL</span>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if state.fill %}
+<h2>Execution</h2>
+<section class="card">
+  <pre>{{ state.fill | tojson(indent=2) }}</pre>
+</section>
+{% endif %}
+
+{% if global_traces %}
+<details>
+  <summary>Global traces (run lifecycle, {{ global_traces|length }} events)</summary>
+  <ul>
+  {% for t in global_traces %}
+    <li><span class="trace-type">{{ t.event_type }}</span> — {{ t.event_data | tojson }}</li>
+  {% endfor %}
+  </ul>
+</details>
+{% endif %}
+
+<p><a href="/">← back to dashboard</a></p>
+
+{% endblock %}

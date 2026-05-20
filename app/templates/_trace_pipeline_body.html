@@ -1,0 +1,44 @@
+{# Render expandable body for one trace row (used in activity pipeline). #}
+{% macro trace_body(t) -%}
+{% set data = t.event_data or {} %}
+{% if t.event_type == 'rag_retrieval' %}
+  <div class="trace-body trace-rag">
+    <div><strong>query:</strong> {{ data.query }}</div>
+    <div class="muted">{{ data.corpus }} · {{ data.hits_count }} hits · {{ data.embed_mode }}</div>
+    {% if data.hits %}
+    <details class="trace-nested">
+      <summary>chunks ({{ data.hits|length }})</summary>
+      <ol class="rag-hits">
+      {% for h in data.hits %}
+        <li>
+          <span class="rag-score">{{ '%.3f'|format(h.score) }}</span>
+          <code>{{ h.chunk_id }}</code>
+          <p class="muted">{{ h.text_preview }}</p>
+        </li>
+      {% endfor %}
+      </ol>
+    </details>
+    {% endif %}
+  </div>
+{% elif t.event_type == 'llm_call' %}
+  <div class="trace-body">
+    <div class="muted">{{ data.model }} · {{ data.mode }}
+      {% if data.tokens %} · {{ data.tokens.total }} tok{% endif %}
+    </div>
+    {% if data.error %}<div class="error">ERROR: {{ data.error }}</div>{% endif %}
+    <details class="trace-nested"><summary>system</summary><pre>{{ data.system or data.system_preview }}</pre></details>
+    <details class="trace-nested"><summary>user</summary><pre>{{ data.user or data.user_preview }}</pre></details>
+    <details class="trace-nested"><summary>response</summary><pre>{{ data.response or data.response_preview }}</pre></details>
+  </div>
+{% elif t.event_type == 'tool_call' %}
+  <div class="trace-body">
+    <div><strong>status:</strong> {{ data.status }}</div>
+    <details class="trace-nested"><summary>args</summary><pre>{{ data.args | join('\n') if data.args else data.kwargs }}</pre></details>
+    <details class="trace-nested"><summary>result</summary><pre>{{ data.result or data.result_preview or data.error }}</pre></details>
+  </div>
+{% else %}
+  <div class="trace-body">
+    <pre>{{ data | tojson(indent=2) }}</pre>
+  </div>
+{% endif %}
+{%- endmacro %}

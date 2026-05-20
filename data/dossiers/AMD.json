@@ -1,0 +1,23 @@
+{
+  "ticker": "AMD",
+  "name": "AMD",
+  "sector": "Information Technology",
+  "sub_industry": "Semiconductors",
+  "market_cap_usd": 681925279744.0,
+  "business_description": "Advanced Micro Devices, Inc. operates as a semiconductor company internationally. It operates in three segments: Data Center, Client and Gaming, and Embedded. The company offers artificial intelligence (AI) accelerators, microprocessors, and graphics processing units (GPUs) as standalone devices or as incorporated into accelerated processing units, chipsets, and data center and professional GPUs; and embedded processors and semi-custom system-on-chip (SoC) products, microprocessor and SoC development services and technology, data processing units, field programmable gate arrays (FPGA), system on modules, AI network interface cards, and adaptive SoC products. It provides processors under the AMD Ryzen, AMD Ryzen AI, AMD Ryzen PRO, AMD Ryzen Threadripper, AMD Ryzen Threadripper PRO, AMD Athl",
+  "revenue_segments": [],
+  "known_risks": [
+    {
+      "category": "onboarding",
+      "description": "no recent SEC filings retrieved \u2014 limit thesis confidence.",
+      "severity": "medium"
+    }
+  ],
+  "peer_set": [],
+  "current_status": "watchlist",
+  "onboarding_source": "idea_scan",
+  "watchlist_seasoned": true,
+  "scan_run_id": "scan_112f4e3d17fe",
+  "suggested_entry_pct_nav": 0.03,
+  "scan_composite_score": 0.666
+}

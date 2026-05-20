@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels: { app: worker, tier: worker }
+spec:
+  # IMPORTANT: keep at 1. The scheduler loops aren't yet leader-elected;
+  # for HA, add leader election (e.g., a Lease + sidecar) before scaling up.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: worker }
+  template:
+    metadata:
+      labels: { app: worker, tier: worker }
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      containers:
+        - name: worker
+          image: horizon-capital:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.workers.scheduler_worker"]
+          envFrom:
+            - configMapRef: { name: horizon-config }
+            - secretRef:    { name: horizon-secrets }
+          env:
+            - name: DATABASE_URL
+              value: "postgresql+psycopg://horizon:$(POSTGRES_PASSWORD)@postgres:5432/horizon"
+            - name: REDIS_URL
+              value: "redis://redis:6379/0"
+          resources:
+            requests: { cpu: 100m, memory: 192Mi }
+            limits:   { cpu: 500m, memory: 512Mi }
+          livenessProbe:
+            exec:
+              command: ["python", "-c", "import sys; sys.exit(0)"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - name: artifacts
+              mountPath: /app/artifacts
+      volumes:
+        - name: artifacts
+          emptyDir: {}

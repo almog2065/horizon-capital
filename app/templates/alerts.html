@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Alerts — Horizon Capital{% endblock %}
+{% block main_class %}alerts-workspace{% endblock %}
+{% block content %}
+<section class="card alerts-header">
+  <div class="alerts-header-row">
+    <div>
+      <h1>Operations alerts</h1>
+      <p class="muted">Dedicated incident workspace — filter, open details, inspect tracebacks and linked runs.</p>
+      {% if grafana_url %}
+      <p class="muted">When the web app is down: open <a href="{{ grafana_url }}" target="_blank" rel="noopener">Grafana</a>
+        (ops alerts + Prometheus rules) or <code>docker compose logs web worker</code>.
+        Alert details: <code>artifacts/ops.sqlite</code> (table <code>ops_alerts</code>).</p>
+      {% endif %}
+    </div>
+    <div class="kpi-grid alerts-kpis">
+      <div class="kpi"><span class="kpi-label">Open</span><strong>{{ summary.open }}</strong></div>
+      <div class="kpi"><span class="kpi-label">Stored</span><strong>{{ summary.total_stored }}</strong></div>
+      {% for sev, n in summary.by_severity.items() %}
+      <div class="kpi"><span class="kpi-label">{{ sev }}</span><strong>{{ n }}</strong></div>
+      {% endfor %}
+    </div>
+    {% if summary.open > 0 %}
+    <form method="post" action="/alerts/ack-all" class="alert-ack-all-form"
+          onsubmit="return confirm('Close all {{ summary.open }} open alert{% if summary.open != 1 %}s{% endif %}? They will be hidden from the open list (not deleted).');">
+      <input type="hidden" name="return_to" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+      <button type="submit" class="button">Close all ({{ summary.open }})</button>
+    </form>
+    {% endif %}
+  </div>
+  {% if closed_notice %}
+  <p class="alert-banner ok">Closed {{ closed_notice }} alert{% if closed_notice != 1 %}s{% endif %}. Showing open only — use <a href="/alerts?unacked=false">Show all</a> for history.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <form method="get" action="/alerts" class="alerts-filters rerun-actions">
+    <label class="checkbox-label">
+      <input type="checkbox" name="unacked" value="true" {% if filter_unacked %}checked{% endif %}>
+      Open only
+    </label>
+    <label>Severity
+      <select name="severity">
+        <option value="">All</option>
+        {% for s in ['critical', 'error', 'warning', 'info'] %}
+        <option value="{{ s }}" {% if filter_severity == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Code
+      <select name="code">
+        <option value="">All</option>
+        {% for c in codes %}
+        <option value="{{ c }}" {% if filter_code == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="button secondary">Apply</button>
+    <a href="/alerts?unacked=false" class="button secondary">Show all</a>
+    <a href="/alerts" class="button secondary">Open only</a>
+    <a href="/diagnostics" class="button secondary">Diagnostics</a>
+    <a href="/traces" class="button secondary">Traces</a>
+  </form>
+</section>
+
+<section class="card">
+  <table class="data-table alerts-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Severity</th>
+        <th>Code</th>
+        <th>Source</th>
+        <th>Summary</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for a in alerts %}
+      <tr class="alert-row alert-{{ a.severity }}{% if a.acknowledged %} alert-acked{% endif %}">
+        <td class="mono"><a href="/alerts/{{ a.alert_id }}">{{ fmt_time(a.ts) }}</a></td>
+        <td><span class="pill pill-{{ a.severity }}">{{ a.severity }}</span></td>
+        <td><code>{{ a.code }}</code></td>
+        <td class="muted">{{ a.source }}</td>
+        <td class="alert-summary-cell">
+          <a href="/alerts/{{ a.alert_id }}" class="alert-investigate-link">{{ a.message[:120] }}{% if a.message|length > 120 %}…{% endif %}</a>
+          {% if a.context and a.context.get('request_id') %}
+          <span class="muted mono">rid {{ a.context.request_id[:12] }}…</span>
+          {% endif %}
+        </td>
+        <td class="alert-row-actions">
+          {% if a.acknowledged %}
+          <span class="muted">acked</span>
+          {% else %}
+          <a href="/alerts/{{ a.alert_id }}" class="button secondary">Investigate</a>
+          <form method="post" action="/alerts/{{ a.alert_id }}/ack" class="alert-ack-inline">
+            <input type="hidden" name="return_to" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+            <button type="submit" class="button secondary">Ack</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">No alerts match these filters.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

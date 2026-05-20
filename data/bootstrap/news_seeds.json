@@ -1,0 +1,17 @@
+[
+  {
+    "chunk_id": "hist_msft_capex",
+    "text": "Microsoft has aggressively increased AI infrastructure capex over the past year. Analysts have debated whether this will pressure margins or build a durable moat. Buy-side opinion is mixed.",
+    "metadata": {"tickers": ["MSFT"], "source": "WSJ"}
+  },
+  {
+    "chunk_id": "hist_nvda_china",
+    "text": "Concerns over US-China chip export restrictions have created intermittent volatility in NVIDIA shares despite strong underlying AI demand.",
+    "metadata": {"tickers": ["NVDA"], "source": "FT"}
+  },
+  {
+    "chunk_id": "hist_aapl_china_demand",
+    "text": "Apple iPhone demand in China has softened amid competition from local handset makers; Services revenue continues to grow.",
+    "metadata": {"tickers": ["AAPL"], "source": "Bloomberg"}
+  }
+]

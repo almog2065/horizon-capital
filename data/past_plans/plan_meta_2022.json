@@ -1,0 +1,14 @@
+{
+  "plan_id": "plan_meta_2022_q4",
+  "ticker": "META",
+  "sector": "Communication Services",
+  "thesis_summary": "Ad business resilient through ATT impact. Reality Labs spend overdone. Cash generation supports buybacks at trough multiple.",
+  "entry_date": "2022-11-04",
+  "exit_date": "2024-02-15",
+  "outcome": {
+    "realized_return_pct": 2.45,
+    "holding_period_days": 468,
+    "thesis_validated": "yes"
+  },
+  "lesson_learned": "When market and management both panic on capex, the disciplined response is to lean in - if the core business cash flow is intact."
+}

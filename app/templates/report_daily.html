@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Daily Report — Horizon Capital{% endblock %}
+{% block content %}
+<section class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+    <h1 style="margin:0">Daily report — {{ report.window }}</h1>
+    <div>
+      <a class="button" href="/reports/daily.xlsx">Download Excel</a>
+      <a class="button secondary" href="/reports/daily.json">JSON</a>
+    </div>
+  </div>
+  <p class="muted">Generated {{ report.generated_at }} · Channel 2 of 2 (web + spreadsheet)</p>
+</section>
+
+<section class="card kpi-grid">
+  <div class="kpi"><span class="kpi-label">NAV</span><strong>{{ fmt_usd(report.nav) }}</strong></div>
+  <div class="kpi"><span class="kpi-label">P&amp;L</span><strong>{{ fmt_usd(report.pnl_absolute) }} ({{ fmt_pct(report.pnl_pct / 100) }})</strong></div>
+  <div class="kpi"><span class="kpi-label">vs benchmark</span><strong>{{ fmt_pct(report.benchmark_pct / 100) }}</strong></div>
+  <div class="kpi"><span class="kpi-label">Holdings</span><strong>{{ report.holdings|length }}</strong></div>
+  <div class="kpi"><span class="kpi-label">Trades (window)</span><strong>{{ report.trades|length }}</strong></div>
+</section>
+
+<section class="card">
+  <h2>Holdings</h2>
+  <table class="data-table">
+    <thead><tr><th>Ticker</th><th>Qty</th><th>Avg cost</th><th>Last</th></tr></thead>
+    <tbody>
+    {% for h in report.holdings %}
+      <tr>
+        <td><strong>{{ h.ticker }}</strong></td>
+        <td>{{ h.qty }}</td>
+        <td>{{ h.avg_cost }}</td>
+        <td>{{ h.last_price }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="muted">No open positions.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Trades</h2>
+  <table class="data-table">
+    <thead><tr><th>Time</th><th>Ticker</th><th>Side</th><th>Qty</th><th>Price</th><th>HITL</th><th>Citations</th></tr></thead>
+    <tbody>
+    {% for t in report.trades %}
+      <tr>
+        <td class="mono">{{ t.ts }}</td>
+        <td><strong>{{ t.ticker }}</strong></td>
+        <td>{{ t.side }}</td>
+        <td>{{ t.qty }}</td>
+        <td>{{ t.price }}</td>
+        <td>{% if t.hitl %}yes{% else %}—{% endif %}</td>
+        <td class="muted">{{ (t.citations or [])|join(', ') }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="muted">No trades in window.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

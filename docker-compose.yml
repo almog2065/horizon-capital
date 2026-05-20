@@ -1,0 +1,252 @@
+# Horizon Capital — production-ready Compose stack.
+#
+# Services:
+#   web        FastAPI app (Uvicorn) — multi-agent firm UI + REST API
+#   worker     Background scheduler (plan supervision, balance loops)
+#   redis      Cache + rate-limiting + future task-queue broker
+#   postgres   Production-grade RDBMS (sqlite stays available for dev)
+#   nginx      Reverse proxy with gzip + healthcheck endpoint
+#   migrate    Idempotent boot job (init_db, RAG seed) — `docker compose run --rm migrate`
+#
+# Topology:
+#   internet → nginx:80 → web:8000
+#   web ↔ postgres (state, traces)
+#   web ↔ redis (cache, locks)
+#   worker shares postgres/redis with web
+#
+# All services run as non-root, on a dedicated internal network, with
+# pinned image digests where practical. Volumes are named so data
+# survives `docker compose down` (use `down -v` only intentionally).
+
+name: horizon-capital
+
+x-app-env: &app-env
+  APP_ENV: ${APP_ENV:-prod}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  LOG_FORMAT: ${LOG_FORMAT:-json}
+  HTTP_HOST: 0.0.0.0
+  HTTP_PORT: "8000"
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+  OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+  USE_MOCK_LLM: ${USE_MOCK_LLM:-}
+  LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+  LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-horizon-capital}
+  LANGSMITH_TRACING: ${LANGSMITH_TRACING:-true}
+  DATABASE_URL: postgresql+psycopg://horizon:${POSTGRES_PASSWORD:-horizon}@postgres:5432/horizon
+  REDIS_URL: redis://redis:6379/0
+  FIRM_DB: /app/artifacts/firm.sqlite
+  VECTOR_DB: /app/artifacts/vectors.sqlite
+  OPS_DB: /app/artifacts/ops.sqlite
+  # Multi-asset / discovery knobs (from the multi-asset update)
+  ENABLE_COINGECKO: ${ENABLE_COINGECKO:-true}
+  ENABLE_FX_CONTEXT: ${ENABLE_FX_CONTEXT:-true}
+  MCP_MARKET_ENABLED: ${MCP_MARKET_ENABLED:-true}
+  MCP_COINGECKO_TRENDING: ${MCP_COINGECKO_TRENDING:-true}
+  MCP_YFINANCE_HISTORY: ${MCP_YFINANCE_HISTORY:-true}
+  SCAN_MAX_EVALUATE: ${SCAN_MAX_EVALUATE:-24}
+  SCAN_API_DISCOVERY_COUNT: ${SCAN_API_DISCOVERY_COUNT:-20}
+  MANAGER_BOOK_SCORE_WEIGHT: ${MANAGER_BOOK_SCORE_WEIGHT:-0.12}
+
+x-app-volumes: &app-volumes
+  - artifacts:/app/artifacts
+  - ./data:/app/data:ro
+
+x-restart-policy: &restart
+  restart: unless-stopped
+  stop_grace_period: 30s
+
+services:
+  # ---------------- Web tier ----------------
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: horizon-capital:latest
+    container_name: horizon-web
+    <<: *restart
+    environment:
+      <<: *app-env
+      RUN_SCHEDULER_IN_API: "false"   # scheduler runs in worker container
+      UVICORN_WORKERS: "2"
+    command:
+      - uvicorn
+      - app.api.app_factory:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --workers
+      - "2"
+      - --proxy-headers
+      - --forwarded-allow-ips
+      - "*"
+    volumes: *app-volumes
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - horizon
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ---------------- Background worker ----------------
+  worker:
+    image: horizon-capital:latest
+    container_name: horizon-worker
+    <<: *restart
+    environment:
+      <<: *app-env
+      RUN_SCHEDULER_IN_API: "false"
+      AUTO_PLAN_SUPERVISION: "true"
+      MARKET_CADENCE_ENABLED: "${MARKET_CADENCE_ENABLED:-true}"
+      CADENCE_MARKET_OPEN_AUTO_EXECUTE: "${CADENCE_MARKET_OPEN_AUTO_EXECUTE:-false}"
+      PLAN_SUPERVISION_INTERVAL_SEC: "${PLAN_SUPERVISION_INTERVAL_SEC:-1800}"
+      FIRM_BALANCE_INTERVAL_SEC: "${FIRM_BALANCE_INTERVAL_SEC:-0}"
+    command: ["python", "-m", "app.workers.scheduler_worker"]
+    volumes: *app-volumes
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - horizon
+    healthcheck:
+      # cheap process-up probe — worker has no HTTP server
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  # ---------------- Postgres (state, traces) ----------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: horizon-postgres
+    <<: *restart
+    environment:
+      POSTGRES_USER: horizon
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-horizon}
+      POSTGRES_DB: horizon
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - horizon
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U horizon -d horizon"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  # ---------------- Redis (cache, queues) ----------------
+  redis:
+    image: redis:7-alpine
+    container_name: horizon-redis
+    <<: *restart
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "100"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - horizon
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # ---------------- Nginx reverse proxy ----------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: horizon-nginx
+    <<: *restart
+    ports:
+      - "${HOST_HTTP_PORT:-8080}:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - horizon
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ---------------- One-shot migration job ----------------
+  migrate:
+    image: horizon-capital:latest
+    container_name: horizon-migrate
+    profiles: ["migrate"]   # only runs with `--profile migrate`
+    environment:
+      <<: *app-env
+    command:
+      - python
+      - -c
+      - |
+        from app.core.logging import setup_logging; setup_logging()
+        from app import db, traces, rag_bootstrap, hitl_sync, trade_history
+        db.init_db()
+        traces.init_db()
+        trade_history.ensure_trade_history_seeded()
+        rag_bootstrap.ensure_ready()
+        hitl_sync.repair_hitl_queue()
+        print("migrate-ok")
+    volumes: *app-volumes
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - horizon
+
+networks:
+  horizon:
+    driver: bridge
+
+volumes:
+  artifacts:
+    driver: local
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local

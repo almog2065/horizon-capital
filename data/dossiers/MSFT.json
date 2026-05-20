@@ -1,0 +1,24 @@
+{
+  "ticker": "MSFT",
+  "name": "Microsoft Corporation",
+  "sector": "Information Technology",
+  "sub_industry": "Systems Software",
+  "market_cap_usd": 3100000000000,
+  "business_description": "Microsoft is a global technology platform company. Primary businesses are cloud infrastructure and platform services (Azure), productivity software (Microsoft 365, Dynamics), personal computing (Windows, Surface, Xbox), and an emerging AI services layer monetized across all segments.",
+  "revenue_segments": [
+    {"name": "Productivity and Business Processes", "pct_of_revenue": 0.33, "growth_yoy": 0.12},
+    {"name": "Intelligent Cloud", "pct_of_revenue": 0.43, "growth_yoy": 0.21},
+    {"name": "More Personal Computing", "pct_of_revenue": 0.24, "growth_yoy": 0.04}
+  ],
+  "management": {
+    "ceo": {"name": "Satya Nadella", "since": "2014-02-04"},
+    "cfo": {"name": "Amy Hood", "since": "2013-05-08"}
+  },
+  "known_risks": [
+    {"category": "regulatory", "description": "EU and US antitrust scrutiny on Azure bundling and Activision integration", "severity": "medium"},
+    {"category": "competitive", "description": "AWS infrastructure scale advantage; Google AI silicon competitiveness", "severity": "medium"},
+    {"category": "financial", "description": "AI capex cycle - depreciation will weigh on operating margin FY26-27", "severity": "low"}
+  ],
+  "peer_set": ["AMZN", "GOOGL", "ORCL", "CRM"],
+  "current_status": "watchlist"
+}

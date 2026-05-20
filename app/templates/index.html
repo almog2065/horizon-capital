@@ -1,0 +1,685 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="status-banner {% if mock_mode %}banner-mock{% else %}banner-live{% endif %}">
+  <div class="banner-row">
+    <div>
+      <strong>LLM:</strong>
+      {% if mock_mode %}
+        <span class="banner-tag mock">MOCK</span> — agents return deterministic outputs (no API calls).
+      {% else %}
+        <span class="banner-tag live">LIVE</span> — agents call OpenAI on every run.
+      {% endif %}
+    </div>
+    <div>
+      <strong>LangSmith:</strong>
+      {% if langsmith_on %}
+        <span class="banner-tag ls-on">ENABLED</span> — runs forwarded to smith.langchain.com.
+      {% else %}
+        <span class="banner-tag ls-off">DISABLED</span>
+      {% endif %}
+    </div>
+    <a href="/diagnostics" class="banner-link">Diagnostics →</a>
+  </div>
+</section>
+
+{% if hitl_flash %}
+<section class="card hitl-flash hitl-flash-{{ hitl_flash.decision }}">
+  <p style="margin:0"><strong>{{ hitl_flash.message }}</strong></p>
+</section>
+{% endif %}
+
+{% if exit_flash %}
+<section class="card hitl-flash hitl-flash-{{ 'approve' if exit_flash.ok else 'reject' }}">
+  <p style="margin:0"><strong>{{ exit_flash.message }}</strong></p>
+</section>
+{% endif %}
+
+{# ——— HITL queue (operator actions) ——— #}
+<section class="card hitl-dashboard-panel" id="hitl-queue-panel">
+  <div class="portfolio-header">
+    <h2 style="margin:0">HITL queue <span class="wait-count-badge">{{ hitl|length }}</span></h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0">
+    {% if wait.summary.plans_stuck or wait.summary.runs_paused %}
+    <form method="post" action="/hitl/repair" style="margin:0">
+      <button type="submit" class="btn-secondary">Sync queue</button>
+    </form>
+    {% endif %}
+    {% if hitl|length > 1 %}
+    <form method="post" action="/hitl/dedupe" style="margin:0">
+      <button type="submit" class="btn-secondary">Dedupe by ticker</button>
+    </form>
+    {% endif %}
+    </div>
+  </div>
+  {% if hitl %}
+  <div class="hitl-queue">
+  {% for item in hitl %}
+    <article class="hitl-queue-card">
+      <a class="hitl-queue-card-body" href="/hitl/{{ item.item_id }}">
+      <div class="hitl-queue-head">
+        <strong>{{ item.ticker }}</strong>
+        <span class="pill">{{ item.brief.position_type_label if item.brief else 'HITL' }}</span>
+      </div>
+      {% if item.brief %}
+      <p class="hitl-queue-title">{{ item.brief.approval_headline }}</p>
+      <div class="hitl-queue-mini">
+        <span>${{ '%.2f'|format(item.brief.market.price) }}</span>
+        <span class="{% if item.brief.market.return_pct >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+          {{ '%.1f'|format(item.brief.market.return_pct * 100) }}%
+        </span>
+        <span class="muted">Agent details on review page →</span>
+      </div>
+      {% else %}
+      <p class="muted">Plan {{ item.plan_id }} · run {{ item.run_id }}</p>
+      {% endif %}
+      </a>
+      <div class="hitl-queue-actions">
+        <form method="post" action="/hitl/{{ item.item_id }}/resolve" class="hitl-quick-form">
+          <input type="hidden" name="return_to" value="dashboard">
+          <input type="hidden" name="note" value="">
+          <button type="submit" name="decision" value="approve" class="hitl-quick-btn approve" title="Approve and execute">Approve</button>
+        </form>
+        <form method="post" action="/hitl/{{ item.item_id }}/resolve" class="hitl-quick-form"
+              onsubmit="return confirm('Reject this plan for {{ item.ticker }}?');">
+          <input type="hidden" name="return_to" value="dashboard">
+          <input type="hidden" name="note" value="Quick reject from dashboard">
+          <button type="submit" name="decision" value="reject" class="hitl-quick-btn reject" title="Reject plan">Reject</button>
+        </form>
+        <a href="/hitl/{{ item.item_id }}" class="hitl-quick-btn hitl-quick-review">Review</a>
+      </div>
+    </article>
+  {% endfor %}
+  </div>
+  {% else %}
+  {% if wait.summary.plans_stuck or wait.summary.runs_paused %}
+  <p class="status-explainer status-pending" style="margin-bottom:10px">
+    <strong>{{ wait.summary.plans_stuck + wait.summary.runs_paused }}</strong> plan(s) or run(s) need approval
+    but were missing from this queue (see <a href="#wait-panel">Waiting</a> below).
+    {% if hitl_repair and hitl_repair.enqueued %}
+    Auto-sync added <strong>{{ hitl_repair.enqueued }}</strong> — refresh if cards do not appear.
+    {% endif %}
+  </p>
+  {% else %}
+  <p class="muted">Queue empty when Risk routes to autonomous execution.</p>
+  {% endif %}
+  {% if hitl_recent %}
+  <p class="muted" style="margin-top:10px"><strong>Recent HITL decisions</strong></p>
+  <ul>
+  {% for item in hitl_recent %}
+    <li>
+      Plan <a href="/plan/{{ item.plan_id }}">{{ item.plan_id }}</a>
+      — <strong>{{ item.resolution }}</strong>
+      <span class="muted">(run {{ item.run_id }})</span>
+    </li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+  {% endif %}
+</section>
+
+{# ——— Market-hours cadence (today) ——— #}
+{% if ops %}
+<section class="card wait-panel" id="cadence-panel">
+  <div class="portfolio-header">
+    <h2 style="margin:0">Today's plan <a href="/operations" class="banner-link">Operations →</a></h2>
+    <div class="wait-schedule-pill">
+      <span class="muted">ET {{ ops.et_now }}</span>
+      {% if ops.session_open %}<span class="pill pill-good">session open</span>{% endif %}
+      {% if ops.next_job %}
+      <span class="muted">Next</span>
+      <strong>{{ ops.next_job.id }}</strong>
+      <span class="wait-timer wait-timer-countdown" data-wait-until="{{ ops.now + ops.seconds_until_next }}">—</span>
+      {% endif %}
+    </div>
+  </div>
+  <ul class="manager-tasks" style="margin-top:8px">
+    {% for row in ops.schedule %}
+    <li class="manager-task {% if row.status == 'done' %}manager-priority-low{% endif %}">
+      <span class="manager-task-type">{{ row.at_et }} ET</span>
+      <strong>{{ row.job_id }}</strong>
+      <span class="muted"> — {{ row.label }}{% if row.status == 'done' %} ✓{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p style="margin:8px 0 0;font-size:13px">
+    <a href="/traces">Traces today</a> ·
+    <a href="/reports/daily/view">Daily report (web)</a> ·
+    <a href="/reports/daily.xlsx">Excel</a>
+  </p>
+</section>
+{% endif %}
+
+{% if firm and holdings %}
+<section class="card" style="border-left:4px solid #007aff">
+  <h2 style="margin-top:0;font-size:16px">Book vs policy</h2>
+  <p style="margin:0;font-size:14px">
+    Invested <strong>{{ fmt_pct(firm.invested_pct) }}</strong>
+    (target {{ fmt_pct(0.85) }}, min {{ fmt_pct(0.70) }}) ·
+    Cash <strong>{{ fmt_pct(firm.cash_pct) }}</strong>
+    (target {{ fmt_pct(firm.policy.cash_target_pct, false) }}, floor {{ fmt_pct(firm.policy.cash_floor_pct, false) }}) ·
+    Deployable <strong>{{ fmt_usd(firm.liquidity.deployable_cash_usd) }}</strong>
+    ({{ fmt_pct(firm.liquidity.deployable_pct_nav, false) }} NAV) ·
+    <strong>{{ firm.positions_count }}</strong> names
+    (target 10–16) ·
+    {% if firm.liquidity.status == 'below_cash_target' %}
+    <span class="pill pill-warn">below cash target</span>
+    {% elif firm.liquidity.status == 'breach_floor' %}
+    <span class="pill pill-warn">below 5% floor</span>
+    {% elif firm.liquidity.status == 'excess_cash' %}
+    <span class="pill pill-good">excess cash — deploy</span>
+    {% elif firm.invested_pct < 0.72 %}
+    <span class="pill pill-warn">room to deploy</span>
+    {% endif %}
+    {% if firm.positions_count < 10 %}<span class="pill">diversify</span>{% endif %}
+  </p>
+</section>
+{% endif %}
+
+
+{# ——— Portfolio Manager tasks ——— #}
+{% if mgr and mgr.tasks %}
+<section class="card manager-panel">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+  <h2 style="margin:0">Portfolio Manager <span class="muted" style="font-size:13px;font-weight:400">policy &amp; routing</span></h2>
+  <form method="post" action="/manager/balance" class="rerun-actions" style="margin:0">
+    <button type="submit" class="button secondary">Run policy routing</button>
+  </form>
+  </div>
+  <p class="manager-role-note">Does not trade or open positions — sets firm policy (sectors, cash, freeze) and routes tasks to Fundamental, Risk, Supervisor, and the operator.</p>
+
+  {% if firm.concentration %}
+  <p style="font-size:13px"><strong>Concentration (8% NAV cap):</strong>
+    {% for c in firm.concentration %}
+      <span class="pill pill-small manager-priority-{{ 'high' if c.status == 'over_cap' else 'medium' }}">{{ c.ticker }} {{ '%.1f'|format(c.pct_nav * 100) }}%</span>
+    {% endfor %}
+  </p>
+  {% endif %}
+  <p class="muted" style="margin-top:0">{{ mgr.book_summary }}</p>
+  {% if mgr.scan_directives and mgr.scan_directives.narrative %}
+  <p style="font-size:13px"><strong>Scan focus:</strong> {{ mgr.scan_directives.narrative }}</p>
+  {% endif %}
+  <ul class="manager-tasks">
+    {% for t in mgr.tasks[:8] %}
+    <li class="manager-task manager-priority-{{ t.priority }}">
+      <span class="manager-task-type">{{ t.type }}</span>
+      {% if t.ticker %}<strong>{{ t.ticker }}</strong>{% elif t.sector %}<em>{{ t.sector }}</em>{% endif %}
+      <span class="muted"> — {{ t.rationale[:140] }}{% if t.rationale|length > 140 %}…{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{# ——— Waiting queue + timers ——— #}
+<section class="card wait-panel" id="wait-panel">
+  <div class="portfolio-header">
+    <h2>
+      Waiting
+      <span class="wait-panel-sub">queue</span>
+      <span class="wait-count-badge">{{ wait.summary.total }}</span>
+    </h2>
+    {% if wait.supervision.enabled %}
+    <div class="wait-schedule-pill" title="Automated plan supervision">
+      <span class="muted">Next monitor cycle</span>
+      <strong class="wait-timer wait-timer-countdown" data-wait-until="{{ wait.supervision.next_run_at or wait.now }}">—</strong>
+      {% if wait.supervision.overdue %}<span class="pill pill-warn">due</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if wait.summary.total > 0 or wait.supervision.enabled %}
+  <div class="wait-summary-chips">
+    {% if wait.summary.operator_hitl %}<span class="wait-chip wait-chip-hitl">{{ wait.summary.operator_hitl }} HITL</span>{% endif %}
+    {% if wait.summary.runs_paused %}<span class="wait-chip">{{ wait.summary.runs_paused }} run paused</span>{% endif %}
+    {% if wait.summary.plans_stuck %}<span class="wait-chip wait-chip-warn">{{ wait.summary.plans_stuck }} plan stuck</span>{% endif %}
+    {% if wait.summary.drafts %}<span class="wait-chip">{{ wait.summary.drafts }} draft</span>{% endif %}
+    {% if wait.summary.long_runs %}<span class="wait-chip">{{ wait.summary.long_runs }} long run</span>{% endif %}
+  </div>
+
+  {% if wait.entries %}
+  <ul class="wait-list">
+    {% for w in wait.entries %}
+    <li class="wait-item wait-item-{{ w.kind }}">
+      <a href="{{ w.href }}" class="wait-item-link">
+        <span class="wait-item-icon" aria-hidden="true">{{ w.icon }}</span>
+        <span class="wait-item-body">
+          <span class="wait-item-top">
+            <span class="wait-kind">{{ w.kind_label }}</span>
+            {% if w.ticker %}<strong class="wait-ticker">{{ w.ticker }}</strong>{% endif %}
+          </span>
+          <span class="wait-item-title">{{ w.title }}</span>
+          <span class="wait-item-detail muted">{{ w.detail }}</span>
+        </span>
+        <span class="wait-timer-col">
+          <span class="wait-timer-label">waiting</span>
+          <span class="wait-timer wait-timer-elapsed" data-wait-since="{{ w.waiting_since }}">—</span>
+        </span>
+      </a>
+      {% if w.can_delete %}
+      <form method="post" action="/plan/{{ w.ref_id }}/delete" class="wait-item-delete"
+            onsubmit="return confirm('Delete plan {{ w.ref_id }}?');">
+        <button type="submit" class="btn-secondary btn-danger" title="Delete stuck plan">Delete</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% elif wait.supervision.enabled %}
+  <p class="muted wait-empty">No operator or pipeline blocks right now. Next automated supervision in
+    <span class="wait-timer wait-timer-countdown" data-wait-until="{{ wait.supervision.next_run_at }}">—</span>.
+  </p>
+  {% endif %}
+
+  {% if wait.supervision.enabled and wait.supervision.last_run_id %}
+  <p class="muted wait-schedule-meta">
+    Last supervision:
+    <a href="/run/{{ wait.supervision.last_run_id }}">{{ wait.supervision.last_run_id }}</a>
+    · every {{ wait.supervision.interval_min }} min
+    {% if wait.supervision.auto_execute %}· auto-execute on{% else %}· auto-execute off{% endif %}
+  </p>
+  {% endif %}
+  {% else %}
+  <p class="muted">Automated supervision is off. Enable <code>AUTO_PLAN_SUPERVISION</code> in env.</p>
+  {% endif %}
+</section>
+
+{# ——— Portfolio overview ——— #}
+<section class="portfolio-panel card">
+  <div class="portfolio-header">
+    <h2>Portfolio</h2>
+    <span class="muted">as of {{ pf.as_of }}</span>
+  </div>
+
+  {% set liq = firm.liquidity or pf.liquidity or {} %}
+  <div class="portfolio-kpis">
+    <div class="kpi kpi-primary kpi-firm-profit">
+      <span class="kpi-label">Firm profit</span>
+      <span class="kpi-value {% if pf.firm_profit_usd >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+        {{ fmt_usd(pf.firm_profit_usd) }}
+      </span>
+      <span class="kpi-sub {% if pf.firm_profit_pct >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+        {{ fmt_pct(pf.firm_profit_pct) }} on {{ fmt_usd(pf.starting_nav_usd) }} capital
+      </span>
+      <span class="kpi-sub muted-fine">
+        Unrealized {{ fmt_usd(pf.unrealized_pnl_usd) }}
+        {% if pf.realized_close_count %}
+        · Realized {{ fmt_usd(pf.realized_pnl_usd) }} ({{ pf.realized_close_count }} close{{ 's' if pf.realized_close_count != 1 else '' }})
+        {% endif %}
+      </span>
+    </div>
+    <div class="kpi kpi-primary">
+      <span class="kpi-label">Economic NAV</span>
+      <span class="kpi-value">{{ fmt_usd(pf.economic_nav_usd) }}</span>
+      <span class="kpi-sub muted-fine">
+        Book NAV {{ fmt_usd(pf.nav_usd) }}
+        {% if pf.portfolio_return_pct %}· open book {{ fmt_pct(pf.portfolio_return_pct) }}{% endif %}
+      </span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Invested</span>
+      <span class="kpi-value">{{ fmt_usd(pf.invested_usd) }}</span>
+      <span class="kpi-sub">{{ fmt_pct(pf.invested_pct, false) }} of NAV · {{ pf.positions_count }} position{{ 's' if pf.positions_count != 1 else '' }}</span>
+    </div>
+    <div class="kpi{% if liq.status in ['below_cash_target', 'breach_floor'] %} kpi-liquidity-warn{% endif %}">
+      <span class="kpi-label">Cash (reserve)</span>
+      <span class="kpi-value">{{ fmt_usd(pf.cash_usd) }}</span>
+      <span class="kpi-sub">
+        {{ fmt_pct(pf.cash_pct, false) }} of NAV
+        · target {{ fmt_pct(firm.policy.cash_target_pct, false) }}
+        {% if liq.status == 'below_cash_target' %}
+        · <span class="pill pill-warn pill-small">below target</span>
+        {% elif liq.status == 'healthy' %}
+        · <span class="pill pill-good pill-small">on policy</span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="kpi kpi-liquidity{% if liq.can_open_new_name %} kpi-liquidity-ok{% else %} kpi-liquidity-warn{% endif %}">
+      <span class="kpi-label">Deployable cash</span>
+      <span class="kpi-value">{{ fmt_usd(liq.deployable_cash_usd or pf.deployable_cash_usd) }}</span>
+      <span class="kpi-sub">
+        {{ fmt_pct(liq.deployable_pct_nav or 0, false) }} NAV for new buys
+        · max entry {{ fmt_pct(liq.max_maiden_entry_pct_nav or 0, false) }}
+      </span>
+      <span class="kpi-sub muted-fine">
+        ≤{{ liq.max_new_maiden_entries or 0 }} maiden name{{ 's' if (liq.max_new_maiden_entries or 0) != 1 else '' }} at 3%
+        {% if pf.pending_deploy_usd > 0 %} · {{ fmt_usd(pf.pending_deploy_usd) }} HITL reserved{% endif %}
+      </span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Unrealized P&amp;L</span>
+      <span class="kpi-value {% if pf.unrealized_pnl_usd >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+        {{ fmt_usd(pf.unrealized_pnl_usd) }}
+      </span>
+      <span class="kpi-sub {% if pf.unrealized_pnl_pct >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+        {{ fmt_pct(pf.unrealized_pnl_pct) }} on cost {{ fmt_usd(pf.total_cost_usd) }}
+      </span>
+    </div>
+  </div>
+
+  <div class="portfolio-kpis portfolio-kpis-secondary">
+    <div class="kpi">
+      <span class="kpi-label">Expected (thesis target)</span>
+      <span class="kpi-value pnl-pos">{{ fmt_usd(pf.expected_pnl_usd) }}</span>
+      <span class="kpi-sub">{{ fmt_pct(pf.expected_return_pct_nav, false) }} of NAV · avg {{ pf.avg_days_remaining }} days to horizon</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Pending deploy (HITL)</span>
+      <span class="kpi-value">{{ fmt_usd(pf.pending_deploy_usd) }}</span>
+      <span class="kpi-sub">{{ pf.pending_plans|length }} plan(s) awaiting approval</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Past yield (closed plans)</span>
+      <span class="kpi-value pnl-pos">{{ fmt_pct(pf.past_avg_return_pct, false) }}</span>
+      <span class="kpi-sub">{{ fmt_pct(pf.past_avg_annualized_pct, false) }} annualized · avg hold {{ pf.past_avg_holding_days }}d · {{ pf.closed_plans|length }} trades</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Weighted upside</span>
+      <span class="kpi-value">{{ fmt_pct(pf.weighted_expected_return_pct, false) }}</span>
+      <span class="kpi-sub">On invested book to valuation band</span>
+    </div>
+  </div>
+
+  {% if pf.sectors %}
+  <div class="allocation-bar-wrap">
+    <p class="muted" style="margin:0 0 6px">Sector allocation</p>
+    <div class="allocation-bar">
+      {% for s in pf.sectors %}
+      <div class="alloc-segment" style="width:{{ (s.pct_nav * 100)|round(1) }}%"
+           title="{{ s.sector }}: {{ fmt_usd(s.usd) }} ({{ fmt_pct(s.pct_nav, false) }})">
+      </div>
+      {% endfor %}
+    </div>
+    <ul class="alloc-legend">
+      {% for s in pf.sectors %}
+      <li><span class="alloc-dot"></span>{{ s.sector }} {{ fmt_pct(s.pct_nav, false) }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if firm %}
+  <div class="allocation-policy card" style="margin-top:16px;padding:12px;background:#f8f9fb">
+    <h3 style="margin:0 0 8px;font-size:15px">Capital allocation policy (agents use this)</h3>
+    <p class="muted" style="margin:0 0 10px;font-size:13px">
+      Cash target {{ (firm.policy.cash_target_pct * 100)|round(0) }}% · floor {{ (firm.policy.cash_floor_pct * 100)|round(0) }}% ·
+      invested target {{ (firm.policy.target_invested_pct * 100)|round(0) }}% ·
+      {{ firm.policy.target_position_count[0] }}–{{ firm.policy.target_position_count[1] }} names ·
+      sector cap {{ (firm.policy.max_sector_pct * 100)|round(0) }}%
+    </p>
+    {% if firm.decision_hints %}
+    <p style="margin:0 0 8px;font-size:13px"><strong>Agent hints:</strong> {{ firm.decision_hints|join(' · ') }}</p>
+    {% endif %}
+    <table style="font-size:12px;width:100%">
+      <thead><tr><th>Sector</th><th>Actual</th><th>Target</th><th>Band high</th><th>Headroom</th></tr></thead>
+      <tbody>
+      {% for s in firm.sectors if s.pct_nav > 0 or s.target_pct > 0.05 %}
+        <tr>
+          <td>{{ s.sector }}</td>
+          <td>{{ fmt_pct(s.pct_nav, false) }}</td>
+          <td>{{ fmt_pct(s.target_pct, false) }}</td>
+          <td>{{ fmt_pct(s.band_high_pct, false) }}</td>
+          <td>{{ fmt_pct(s.headroom_to_cap_pct, false) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<div class="grid">
+
+  <section class="card card-wide">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <h2 style="margin:0">Positions</h2>
+      {% if pf.positions_count %}
+      <form method="post" action="/monitor/run" class="rerun-actions" style="margin:0">
+        <button type="submit" class="button">↻ Run monitor</button>
+      </form>
+      {% endif %}
+    </div>
+    {% if pf.positions %}
+    <table>
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Value</th>
+          <th>% NAV</th>
+          <th>P&amp;L</th>
+          <th>Days left</th>
+          <th>Expected $</th>
+          <th>Plan</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in pf.positions %}
+        <tr>
+          <td><strong>{{ p.ticker }}</strong><br><span class="muted">{{ p.sector }}</span></td>
+          <td>{{ fmt_usd(p.market_value) }}<br><span class="muted">{{ p.quantity }} @ {{ fmt_usd(p.price) }}</span></td>
+          <td>{{ fmt_pct(p.pct_nav, false) }}</td>
+          <td class="{% if p.unrealized_pnl >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+            {{ fmt_usd(p.unrealized_pnl) }}<br>
+            <span class="muted">{{ fmt_pct(p.unrealized_pnl_pct) }}</span>
+          </td>
+          <td>{{ p.days_remaining }}<br><span class="muted">held {{ p.days_held }}d / {{ p.horizon_days }}d</span></td>
+          <td class="pnl-pos">{{ fmt_usd(p.expected_pnl_usd) }}<br><span class="muted">{{ fmt_pct(p.expected_return_pct, false) }} upside</span></td>
+          <td>{% if p.plan_id %}<a href="/plan/{{ p.plan_id }}">{{ p.plan_id[:14] }}…</a>{% else %}—{% endif %}</td>
+          <td class="position-actions">
+            <form method="post" action="/positions/{{ p.ticker }}/exit" class="position-exit-form"
+                  onsubmit="return confirm('Exit full position in {{ p.ticker }} ({{ p.quantity }} shares)?');">
+              <button type="submit" class="btn-secondary btn-danger btn-exit-position" title="Sell entire position">Exit</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">No open positions. <a href="/trigger">Trigger a run</a> to invest.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <h2 style="margin:0">Trading history</h2>
+      <a href="/trades" class="muted">View all →</a>
+    </div>
+    {% if trade_hist.trades %}
+    <table>
+      <thead><tr><th>When</th><th>Buy / Sell</th><th>Ticker</th><th>Detail</th></tr></thead>
+      <tbody>
+      {% for t in trade_hist.trades[:10] %}
+        <tr>
+          <td class="muted">{{ fmt_trade_ts(t.ts) }}</td>
+          <td><span class="trade-badge trade-{{ t.buy_sell or t.action }}">{{ t.action_label }}</span></td>
+          <td><strong>{{ t.ticker }}</strong></td>
+          <td>
+            {% if t.action_label in ['Buy', 'Sell'] and t.notional_usd %}
+              {{ fmt_usd(t.notional_usd) }}
+            {% elif t.return_pct is not none %}
+              <span class="{% if t.return_pct >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">{{ fmt_pct(t.return_pct, false) }}</span>
+            {% elif t.action == 'rejected' %}
+              <span class="muted">HITL</span>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted" style="margin:8px 0 0;font-size:12px">
+      {{ trade_hist.summary.total }} events · {{ trade_hist.summary.live_fills }} live fills ·
+      <a href="/trades">full ledger</a>
+    </p>
+    {% else %}
+    <p class="muted">No trades recorded yet. <a href="/trades">Open trade ledger</a></p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="portfolio-header">
+      <h2>Recent runs</h2>
+      <form method="post" action="/runs/cleanup-hitl" style="margin:0;display:inline">
+        <button type="submit" class="btn-secondary">Close stale HITL runs</button>
+      </form>
+      <form method="post" action="/runs/cleanup-stuck" style="margin:0;display:inline">
+        <button type="submit" class="btn-secondary">Close stuck runs</button>
+      </form>
+    </div>
+    {% if runs %}
+    <table>
+      <thead><tr><th>Run</th><th>Trigger</th><th>Status</th><th>When</th></tr></thead>
+      <tbody>
+      {% for r in runs %}
+        <tr>
+          <td><a href="/run/{{ r.run_id }}">{{ r.run_id }}</a></td>
+          <td>{{ r.trigger_type }}</td>
+          <td><span class="status status-{{ r.status }}">{{ r.status }}</span></td>
+          <td>{{ fmt_time(r.created_at) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">No runs yet. <a href="/trigger">Trigger one</a>.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="portfolio-header">
+      <h2>Plans</h2>
+      <form method="post" action="/plans/delete-stuck" style="margin:0;display:inline"
+            onsubmit="return confirm('Delete all draft and orphan stuck plans? Plans with an open HITL card are skipped.');">
+        <button type="submit" class="btn-secondary btn-danger">Delete stuck plans</button>
+      </form>
+      <form method="post" action="/plans/cleanup" style="margin:0;display:inline">
+        <button type="submit" class="btn-secondary">Cleanup plans &amp; runs</button>
+      </form>
+    </div>
+    {% if plans %}
+    <table>
+      <thead><tr><th>Plan</th><th>Ticker</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for p in plans %}
+        <tr>
+          <td><a href="/plan/{{ p.plan_id }}">{{ p.plan_id }}</a></td>
+          <td>{{ p.ticker }}</td>
+          <td><span class="status status-{{ p.status }}">{{ p.status }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">No plans yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>RAG corpus counts</h2>
+    <ul>
+      <li>Policy chunks: {{ rag_counts.policy }}</li>
+      <li>News chunks: {{ rag_counts.news }}</li>
+      <li>Filings chunks: {{ rag_counts.filings }}</li>
+      <li>Past plans chunks: {{ rag_counts.past_plans }}</li>
+    </ul>
+  </section>
+
+{# ——— Firm state timeline (bottom of dashboard) ——— #}
+{% if timeline and timeline.has_data %}
+<section class="card firm-timeline-panel" id="firm-timeline">
+  <div class="portfolio-header">
+    <h2 style="margin:0">Firm timeline</h2>
+    <span class="muted">
+      {% if timeline.time_range %}
+      {{ timeline.time_range.start_label }} → {{ timeline.time_range.end_label }}
+      · {{ timeline.time_range.description }}
+      {% else %}
+      as of {{ timeline.as_of }}
+      {% endif %}
+      · {{ timeline.event_counts.run }} runs · {{ timeline.event_counts.trade }} trades
+    </span>
+  </div>
+  <div class="timeline-charts-grid">
+    <div class="timeline-chart-box timeline-chart-wide">
+      <h3 class="timeline-chart-title">NAV</h3>
+      <div class="timeline-chart-canvas"><canvas id="chart-nav"></canvas></div>
+    </div>
+    <div class="timeline-chart-box timeline-chart-wide">
+      <h3 class="timeline-chart-title">Allocation vs policy</h3>
+      <p class="muted timeline-chart-hint">Dashed lines: target invested {{ timeline.policy.target_invested_pct }}% · cash target {{ timeline.policy.cash_target_pct }}%</p>
+      <div class="timeline-chart-canvas"><canvas id="chart-allocation"></canvas></div>
+    </div>
+    <div class="timeline-chart-box">
+      <h3 class="timeline-chart-title">Position count</h3>
+      <div class="timeline-chart-canvas"><canvas id="chart-positions"></canvas></div>
+    </div>
+    {% if timeline.sector_mix %}
+    <div class="timeline-chart-box">
+      <h3 class="timeline-chart-title">Sector mix (now)</h3>
+      <div class="timeline-chart-canvas timeline-chart-canvas-doughnut"><canvas id="chart-sectors"></canvas></div>
+    </div>
+    {% endif %}
+    <div class="timeline-chart-box timeline-chart-wide">
+      <h3 class="timeline-chart-title">Activity stream</h3>
+      <div class="timeline-chart-canvas timeline-chart-canvas-events"><canvas id="chart-events"></canvas></div>
+    </div>
+  </div>
+  <div class="timeline-events-feed">
+    <h3 class="timeline-chart-title">Recent events</h3>
+    <ul id="timeline-event-list" class="timeline-event-list"></ul>
+  </div>
+</section>
+{% elif timeline %}
+<section class="card firm-timeline-panel muted" id="firm-timeline">
+  <h2 style="margin:0;font-size:16px">Firm timeline</h2>
+  <p style="margin:8px 0 0">Charts span <strong>first recorded trade or firm snapshot through now</strong>. Run policy routing or trade to populate points.</p>
+</section>
+{% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  function pad(n) { return n < 10 ? "0" + n : String(n); }
+  function formatDuration(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    var d = Math.floor(sec / 86400);
+    var h = Math.floor((sec % 86400) / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    var s = sec % 60;
+    if (d > 0) return d + "d " + h + "h";
+    if (h > 0) return h + "h " + pad(m) + "m";
+    if (m > 0) return m + "m " + pad(s) + "s";
+    return s + "s";
+  }
+  function tick() {
+    var now = Date.now() / 1000;
+    document.querySelectorAll("[data-wait-since]").forEach(function (el) {
+      var since = parseFloat(el.getAttribute("data-wait-since"));
+      if (!since) return;
+      var sec = now - since;
+      el.textContent = formatDuration(sec);
+      el.classList.toggle("wait-urgent", sec >= 3600);
+    });
+    document.querySelectorAll("[data-wait-until]").forEach(function (el) {
+      var until = parseFloat(el.getAttribute("data-wait-until"));
+      if (!until) return;
+      var sec = until - now;
+      el.textContent = sec > 0 ? formatDuration(sec) : "due now";
+      el.classList.toggle("wait-urgent", sec <= 0);
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+{% if timeline and timeline.has_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>window.HORIZON_TIMELINE = {{ timeline | tojson }};</script>
+<script src="/static/firm_timeline.js"></script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,48 @@
+{% macro call_inventory(inv) -%}
+{% if inv and (inv.llm or inv.tool or inv.rag) %}
+<div class="trace-call-inventory" aria-label="Calls in this step">
+  {% if inv.llm %}
+  <div class="trace-call-group trace-call-llm">
+    <span class="trace-call-group-label"><i class="tp-dot tp-llm"></i> LLM</span>
+    <ul class="trace-call-list">
+      {% for item in inv.llm %}
+      <li class="trace-call-row{% if item.status == 'error' %} trace-call-error{% endif %}">
+        <span class="trace-call-name">{{ item.label }}</span>
+        {% if item.detail %}<span class="trace-call-detail muted">{{ item.detail }}</span>{% endif %}
+        <span class="trace-call-dur">{{ item.duration_label }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% if inv.tool %}
+  <div class="trace-call-group trace-call-tool">
+    <span class="trace-call-group-label"><i class="tp-dot tp-tool"></i> Tools</span>
+    <ul class="trace-call-list">
+      {% for item in inv.tool %}
+      <li class="trace-call-row{% if item.status == 'error' %} trace-call-error{% endif %}">
+        <span class="trace-call-name">{{ item.label }}</span>
+        {% if item.detail %}<span class="trace-call-detail muted">{{ item.detail }}</span>{% endif %}
+        <span class="trace-call-dur">{{ item.duration_label }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% if inv.rag %}
+  <div class="trace-call-group trace-call-rag">
+    <span class="trace-call-group-label"><i class="tp-dot tp-rag"></i> RAG</span>
+    <ul class="trace-call-list">
+      {% for item in inv.rag %}
+      <li class="trace-call-row{% if item.status == 'error' %} trace-call-error{% endif %}">
+        <span class="trace-call-name">{{ item.label }}</span>
+        {% if item.detail %}<span class="trace-call-detail muted">{{ item.detail }}</span>{% endif %}
+        <span class="trace-call-dur">{{ item.duration_label }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{%- endmacro %}

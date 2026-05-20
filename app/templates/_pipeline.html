@@ -1,0 +1,47 @@
+{# Reusable pipeline-progress bar.
+   Usage:
+     {% from "_pipeline.html" import pipeline_bar %}
+     {{ pipeline_bar(pipeline_dict) }}
+
+   pipeline_dict shape:
+     {"title": str, "stages": [{key, label, state, meta, tooltip, tools?}], "summary": str}
+   states: done / running / pending / skipped / error
+#}
+{% macro pipeline_bar(p) -%}
+{% if p and p.stages %}
+<section class="pipeline-card">
+  <div class="pipeline-header">
+    <h3>{{ p.title }}</h3>
+    <span>{{ p.summary }}</span>
+  </div>
+  <div class="pipeline">
+    {% for s in p.stages %}
+      <div class="pipeline-step pipeline-step-{{ s.state }}{% if p.active_stage_key == s.key %} pipeline-step-active{% endif %}"
+           title="{{ s.tooltip or s.label }}">
+        <div class="pipeline-step-dot"><span>{{ loop.index }}</span></div>
+        <div class="pipeline-step-label">{{ s.label }}</div>
+        {% if s.meta %}<div class="pipeline-step-meta">{{ s.meta }}</div>{% endif %}
+        {% if s.tools %}
+        <div class="pipeline-step-tools">
+          {% for tool in s.tools %}
+          <span class="pipeline-tool-pill" title="{{ tool }}">{{ tool }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% if not loop.last %}
+        <div class="pipeline-connector pipeline-connector-{{ s.state }}"></div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% if p.tools_used %}
+  <p class="pipeline-tools-summary muted">
+    <strong>Tools used in this run:</strong>
+    {% for tool in p.tools_used %}
+    <span class="pipeline-tool-pill">{{ tool }}</span>
+    {% endfor %}
+  </p>
+  {% endif %}
+</section>
+{% endif %}
+{%- endmacro %}

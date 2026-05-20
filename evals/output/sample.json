@@ -1,0 +1,67 @@
+{
+  "window": "2025-05-15",
+  "portfolio": {
+    "starting_nav": 1000000.0,
+    "ending_nav": 994087.5,
+    "pnl_absolute": -5912.5,
+    "pnl_pct": -0.59125,
+    "benchmark_pct": 0.45,
+    "excess_return_pct": -1.04125,
+    "max_drawdown_pct": 9.8567335243553,
+    "hit_rate": 100.0,
+    "n_trades": 4
+  },
+  "process": {
+    "n_agent_calls": 4,
+    "n_llm_calls": 4,
+    "grounded_calls": 4,
+    "grounded_ratio": 1.0,
+    "citations_per_decision": 1.5,
+    "refusal_count": 0,
+    "hitl_required": 1,
+    "hitl_resolved": 1,
+    "guardrail_breaches": 0
+  },
+  "equity_curve": [
+    1000000.0,
+    1000000.0,
+    1047000.0,
+    943800.0,
+    994087.5
+  ],
+  "trades": [
+    {
+      "ticker": "MSFT",
+      "side": "buy",
+      "qty": 100.0,
+      "price": 410.0
+    },
+    {
+      "ticker": "NVDA",
+      "side": "buy",
+      "qty": 50.0,
+      "price": 880.0
+    },
+    {
+      "ticker": "AAPL",
+      "side": "buy",
+      "qty": 75.0,
+      "price": 192.0
+    },
+    {
+      "ticker": "MSFT",
+      "side": "sell",
+      "qty": 100.0,
+      "price": 415.5,
+      "realized_pnl": 550.0
+    }
+  ],
+  "trace_summary": {
+    "n_events": 10,
+    "kinds": [
+      "agent_call",
+      "event",
+      "llm_call"
+    ]
+  }
+}

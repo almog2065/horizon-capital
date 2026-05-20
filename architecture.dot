@@ -1,0 +1,122 @@
+digraph horizon_capital_abstract {
+  rankdir=TB;
+  bgcolor="white";
+  fontname="Helvetica";
+  splines=spline;
+  nodesep=0.5;
+  ranksep=0.8;
+  pad=0.4;
+  node [fontname="Helvetica", fontsize=12, style="filled,rounded", color="#444444", penwidth=1.4];
+  edge [fontname="Helvetica", fontsize=10, color="#666666", penwidth=1.3];
+
+  labelloc="t";
+  fontsize=18;
+  label=<<B>Horizon Capital — Multi-Agent Architecture</B>>;
+
+  /* ===================== Inputs ===================== */
+  inputs [label=<<B>Inputs</B><BR/><FONT POINT-SIZE="10">news · scheduler tick · operator</FONT>>,
+          shape=note, fillcolor="#fff7d6", width=2.6];
+
+  /* ===================== Orchestration ===================== */
+  pm [label=<<B>Portfolio Manager</B><BR/><FONT POINT-SIZE="10">policy + routing, no trades</FONT>>,
+      shape=box3d, fillcolor="#ffd9b3", width=2.8];
+
+  /* ===================== Discovery / Triage row ===================== */
+  triage [label=<<B>News Triage</B><BR/><FONT POINT-SIZE="10">materiality score</FONT>>,
+          shape=box, fillcolor="#ffe2c2", width=2.4];
+  ideas  [label=<<B>Idea Generator</B><BR/><FONT POINT-SIZE="10">proactive scan</FONT>>,
+          shape=box, fillcolor="#ffe2c2", width=2.4];
+
+  /* ===================== Analysis ===================== */
+  fund [label=<<B>Fundamental Analyst</B><BR/><FONT POINT-SIZE="10">thesis + sources</FONT>>,
+        shape=box, fillcolor="#ffe2c2", width=2.8];
+
+  /* ===================== Plan + Risk gate ===================== */
+  plan [label=<<B>Plan Builder</B><BR/><FONT POINT-SIZE="10">draft + guardrails</FONT>>,
+        shape=box, fillcolor="#ffe2c2", width=2.8];
+  gate [label=<<B>Risk + Supervisor</B><BR/><FONT POINT-SIZE="10">approve · HITL · reject</FONT>>,
+        shape=box, fillcolor="#ffe2c2", width=2.8];
+
+  /* ===================== Human + execution ===================== */
+  hitl [label=<<B>HITL Operator</B>>, shape=hexagon, fillcolor="#fde2e2", width=2.4, penwidth=2];
+  exec [label=<<B>Execution</B><BR/><FONT POINT-SIZE="10">simulated fills</FONT>>,
+        shape=parallelogram, fillcolor="#dcecff", width=2.4];
+
+  /* ===================== State + monitoring ===================== */
+  state [label=<<B>Holdings &amp; Plans</B><BR/><FONT POINT-SIZE="10">SQLite</FONT>>,
+         shape=cylinder, fillcolor="#d6e6ff", width=2.4];
+  monitor [label=<<B>Position Monitor</B><BR/><FONT POINT-SIZE="10">guardrails on open positions</FONT>>,
+           shape=box, fillcolor="#ffe2c2", width=2.6];
+
+  /* ===================== Side channels ===================== */
+  audit [label=<<B>Auditor</B><BR/><FONT POINT-SIZE="9">side-channel · runs after every step</FONT>>,
+         shape=octagon, fillcolor="#ffc9a3", width=2.2];
+
+  /* ===================== Knowledge layer ===================== */
+  rag [label=<<B>RAG</B><BR/><FONT POINT-SIZE="10">policies · past_plans<BR/>filings · news</FONT>>,
+       shape=cylinder, fillcolor="#c8ecd0", width=2.2, color="#3f8a4f"];
+  tools [label=<<B>Tools</B><BR/><FONT POINT-SIZE="10">market data · dossier<BR/>simulate_order · search_*</FONT>>,
+         shape=folder, fillcolor="#e1d3f5", width=2.2, color="#7a4fb0"];
+
+  /* ===================== Main flow ===================== */
+  inputs -> pm     [style=dashed, color="#999999"];
+  inputs -> triage [color="#a04020", penwidth=2.0];
+  pm -> ideas      [label="scan task"];
+  pm -> monitor    [label="review task"];
+  ideas -> triage  [label="synthetic event"];
+
+  triage -> fund   [label="act", color="#a04020", penwidth=2.2];
+  fund   -> plan   [label="eligible_for_plan", color="#a04020", penwidth=2.2];
+  plan   -> gate   [label="drafted", color="#a04020", penwidth=2.2];
+
+  gate -> hitl     [label="hitl_required", color="#a04020", penwidth=2.2];
+  gate -> exec     [label="autonomous", color="#a04020", penwidth=2.2];
+  hitl -> exec     [label="approve", color="#b13838", penwidth=2.0];
+  hitl -> state    [label="reject", style=dashed, color="#b13838"];
+
+  exec -> state    [penwidth=1.8];
+  state -> monitor [label="open positions"];
+  monitor -> fund  [label="re-evaluate", style=dashed, constraint=false];
+
+  /* ===================== Knowledge (shared by every agent) ===================== */
+  edge [color="#7a4fb0", arrowhead=vee];
+  triage  -> tools [constraint=false];
+  ideas   -> tools [constraint=false];
+  fund    -> tools [constraint=false];
+  plan    -> tools [constraint=false];
+  gate    -> tools [constraint=false];
+  monitor -> tools [constraint=false];
+  pm      -> tools [constraint=false];
+  edge [color="#3f8a4f"];
+  tools -> rag [label="search_*", constraint=false];
+  edge [color="#666666"];
+
+  /* ===================== Audit side channel ===================== */
+  edge [style=dashed, color="#888888", arrowhead=odot];
+  triage  -> audit [constraint=false];
+  fund    -> audit [constraint=false];
+  plan    -> audit [constraint=false];
+  gate    -> audit [constraint=false];
+  monitor -> audit [constraint=false];
+  ideas   -> audit [constraint=false];
+  pm      -> audit [constraint=false];
+  edge [style=solid, color="#666666", arrowhead=normal];
+
+  /* ===================== Rank hints (clean rows) ===================== */
+  {rank=same; triage; ideas;}
+  {rank=same; hitl; exec;}
+  {rank=same; rag; tools; audit;}
+
+  /* ===================== Legend ===================== */
+  subgraph cluster_legend {
+    label="Legend"; fontsize=11; style="rounded,filled"; fillcolor="#fafafa"; color="#cccccc";
+    L1 [label="Agent", shape=box, fillcolor="#ffe2c2", style="filled,rounded"];
+    L2 [label="Orchestrator", shape=box3d, fillcolor="#ffd9b3", style="filled,rounded"];
+    L3 [label="Human", shape=hexagon, fillcolor="#fde2e2", style="filled"];
+    L4 [label="Knowledge\n(RAG corpora)", shape=cylinder, fillcolor="#c8ecd0", style="filled"];
+    L5 [label="Tools", shape=folder, fillcolor="#e1d3f5", style="filled"];
+    L6 [label="Audit", shape=octagon, fillcolor="#ffc9a3", style="filled"];
+    L1 -> L2 [style=invis]; L2 -> L3 [style=invis];
+    L4 -> L5 [style=invis]; L5 -> L6 [style=invis];
+  }
+}

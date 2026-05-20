@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Horizon Capital{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header>
+    <div class="brand"><a href="/">Horizon Capital</a></div>
+    <nav>
+      {% if ops_alert_summary is defined %}{% set _nav_alerts = ops_alert_summary() %}{% endif %}
+      <a href="/">Dashboard</a>
+      <a href="/operations">Operations</a>
+      <a href="/traces">Traces</a>
+      <a href="/reports/daily/view">Daily Report</a>
+      <a href="/trigger">Trigger News</a>
+      <a href="/scan">Idea Scan</a>
+      <a href="/monitor">Monitor</a>
+      <a href="/trades">Trades</a>
+      <a href="/evals">Evals</a>
+      <a href="/alerts" class="nav-alerts{% if _nav_alerts is defined and _nav_alerts.open %} nav-alerts-active{% endif %}">
+        Alerts{% if _nav_alerts is defined and _nav_alerts.open %}
+        <span class="nav-alert-badge" title="{{ _nav_alerts.open }} open alert{% if _nav_alerts.open != 1 %}s{% endif %}">{{ _nav_alerts.open }}</span>
+        {% endif %}
+      </a>
+      <a href="/diagnostics">Diagnostics</a>
+    </nav>
+    <div class="badges">
+      {% if mock_mode %}
+        <a href="/diagnostics" class="mode-badge mock" title="No OpenAI key — click for details">MOCK LLM</a>
+      {% else %}
+        <a href="/diagnostics" class="mode-badge live" title="OpenAI key detected — click for details">LIVE LLM</a>
+      {% endif %}
+      {% if langsmith_on %}
+        <a href="/diagnostics" class="mode-badge ls-on" title="LangSmith tracing enabled — click for details">LangSmith ON</a>
+      {% else %}
+        <a href="/diagnostics" class="mode-badge ls-off" title="LangSmith disabled — click to learn how to enable">LangSmith OFF</a>
+      {% endif %}
+    </div>
+  </header>
+  <main class="{% block main_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <small>Horizon Capital — agentic multi-agent investment firm demo</small>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

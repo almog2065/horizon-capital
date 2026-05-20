@@ -1,0 +1,14 @@
+{
+  "MSFT": [
+    "Q3 FY26 10-Q excerpt: Azure revenue grew 25% on a constant-currency basis. Operating margin compressed 80 bps year-over-year due to AI infrastructure capex. Capital return continued with 8 billion of buybacks in the quarter. Management reaffirmed FY26 guidance and indicated AI demand visibility extends through next fiscal year.",
+    "8-K excerpt: Microsoft announced a 50 billion incremental capex authorization for AI infrastructure over the next two years. The board approved the plan and CFO commented that the firm expects the AI revenue ramp to begin offsetting depreciation by mid-FY27."
+  ],
+  "AAPL": [
+    "Q2 FY26 10-Q excerpt: Services revenue grew 14% to a record. iPhone revenue declined 2% YoY with China contributing most of the weakness. Gross margin expanded 50 bps driven by Services mix. Capital return reached 27 billion in the quarter.",
+    "8-K excerpt: Apple disclosed a stock repurchase program increase of 110 billion alongside a 4% dividend raise."
+  ],
+  "NVDA": [
+    "Q2 FY26 10-Q excerpt: Data center revenue tripled YoY. Gross margin expanded to 76%. Inventory days grew modestly. Management cautioned on hyperscaler concentration and ongoing export restriction uncertainty.",
+    "8-K excerpt: NVIDIA disclosed that new export controls may reduce Q3 revenue by 4 billion. The company is engaging regulators to identify compliant product configurations."
+  ]
+}

@@ -1,0 +1,38 @@
+{# Agent outputs for HITL — compact=true for dashboard cards #}
+{% macro agent_outputs_block(agent_outputs, compact=false) %}
+{% if agent_outputs %}
+<div class="hitl-agent-outputs{% if compact %} hitl-agent-outputs-compact{% endif %}">
+  {% for a in agent_outputs %}
+  <article class="hitl-agent-output">
+    <header class="hitl-agent-output-head">
+      <span class="hitl-agent-output-icon" aria-hidden="true">{{ a.icon }}</span>
+      <strong>{{ a.label }}</strong>
+      {% if a.duration_ms %}<span class="muted">({{ a.duration_ms }} ms)</span>{% endif %}
+      {% if a.audit %}
+      <span class="audit-badge severity-{{ a.audit_severity or 'low' }}">
+        Auditor: {{ a.audit.overall_severity or '—' }}
+      </span>
+      {% endif %}
+    </header>
+    {% if a.key_fields and not compact %}
+    <dl class="hitl-agent-fields">
+      {% for f in a.key_fields %}
+      <div class="hitl-agent-field">
+        <dt>{{ f.label }}</dt>
+        <dd>{{ f.value }}</dd>
+      </div>
+      {% endfor %}
+    </dl>
+    {% endif %}
+    <p class="hitl-agent-summary{% if compact %} hitl-agent-summary-compact{% endif %}">{{ a.summary }}</p>
+    {% if not compact %}
+    <details class="hitl-agent-json">
+      <summary>Full agent output (JSON)</summary>
+      <pre>{{ a.output | tojson(indent=2) }}</pre>
+    </details>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}

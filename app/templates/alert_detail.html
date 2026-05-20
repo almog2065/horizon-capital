@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Alert {{ alert.alert_id }} — Horizon Capital{% endblock %}
+{% block main_class %}alerts-workspace alert-detail-page{% endblock %}
+{% block content %}
+<section class="card alert-detail-header">
+  <p class="muted"><a href="/alerts">← All alerts</a></p>
+  <div class="alert-detail-title">
+    <span class="pill pill-{{ alert.severity }}">{{ alert.severity }}</span>
+    <h1><code>{{ alert.code }}</code></h1>
+    {% if not alert.acknowledged %}
+    <form method="post" action="/alerts/{{ alert.alert_id }}/ack" class="alert-ack-form">
+      <input type="hidden" name="return_to" value="/alerts/{{ alert.alert_id }}">
+      <button type="submit" class="button secondary">Acknowledge</button>
+    </form>
+    {% else %}
+    <span class="muted">Acknowledged {{ fmt_time(alert.acked_at) if alert.acked_at else '' }}</span>
+    {% endif %}
+  </div>
+  <p class="alert-detail-message">{{ alert.message }}</p>
+  <dl class="alert-meta-grid">
+    <dt>Alert ID</dt><dd class="mono">{{ alert.alert_id }}</dd>
+    <dt>Time</dt><dd class="mono">{{ fmt_time(alert.ts) }}</dd>
+    <dt>Source</dt><dd>{{ alert.source }}</dd>
+    {% if alert.run_id %}
+    <dt>Run</dt><dd><a href="/run/{{ alert.run_id }}">{{ alert.run_id }}</a></dd>
+    {% endif %}
+    {% if context.get('request_id') %}
+    <dt>Request ID</dt><dd class="mono">{{ context.request_id }}</dd>
+    {% endif %}
+    {% if context.get('exception_type') %}
+    <dt>Exception</dt><dd><code>{{ context.exception_type }}</code></dd>
+    {% endif %}
+    {% if context.get('method') %}
+    <dt>HTTP</dt><dd class="mono">{{ context.method }} {{ context.path or alert.source }}</dd>
+    {% endif %}
+    {% if context.get('status_code') %}
+    <dt>Status</dt><dd>{{ context.status_code }}</dd>
+    {% endif %}
+  </dl>
+  <div class="alert-detail-actions">
+    <a href="/alerts?code={{ alert.code }}" class="button secondary">Same code</a>
+    {% if alert.run_id %}
+    <a href="/run/{{ alert.run_id }}" class="button secondary">Open run</a>
+    <a href="/traces?run_id={{ alert.run_id }}" class="button secondary">Filter traces</a>
+    {% endif %}
+    <a href="/diagnostics" class="button secondary">Diagnostics</a>
+    {% if grafana_url %}<a href="{{ grafana_url }}" class="button secondary" target="_blank" rel="noopener">Grafana</a>{% endif %}
+  </div>
+</section>
+
+{% if traceback_text %}
+<section class="card">
+  <h2>Stack trace</h2>
+  <pre class="alert-traceback">{{ traceback_text }}</pre>
+</section>
+{% endif %}
+
+{% if context %}
+<section class="card">
+  <h2>Context</h2>
+  <pre class="alert-context-json">{{ context | tojson(indent=2) }}</pre>
+</section>
+{% endif %}
+
+{% if related_traces %}
+<section class="card">
+  <h2>Related trace events</h2>
+  <table class="data-table traces-table">
+    <thead>
+      <tr><th>Time</th><th>Run</th><th>Event</th><th>Detail</th></tr>
+    </thead>
+    <tbody>
+    {% for t in related_traces %}
+      <tr>
+        <td class="mono">{{ fmt_time(t.ts) }}</td>
+        <td>{% if t.run_id %}<a href="/run/{{ t.run_id }}">{{ (t.run_id or '')[:14] }}</a>{% else %}—{% endif %}</td>
+        <td><code>{{ t.event_type }}</code></td>
+        <td class="trace-detail">{{ t.event_data.message if t.event_data else '' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if run_traces %}
+<section class="card">
+  <h2>Run timeline{% if alert.run_id %} — {{ alert.run_id[:20] }}{% endif %}</h2>
+  <table class="data-table traces-table">
+    <thead>
+      <tr><th>Time</th><th>Agent</th><th>Event</th><th>ms</th></tr>
+    </thead>
+    <tbody>
+    {% for t in run_traces %}
+      <tr class="trace-row trace-{{ t.event_type }}">
+        <td class="mono">{{ fmt_time(t.ts) }}</td>
+        <td>{{ t.agent or '—' }}</td>
+        <td><code>{{ t.event_type }}</code></td>
+        <td>{{ t.duration_ms or '' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% endblock %}

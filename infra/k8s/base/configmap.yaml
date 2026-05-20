@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: horizon-config
+data:
+  APP_ENV: "prod"
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+  HTTP_HOST: "0.0.0.0"
+  HTTP_PORT: "8000"
+  OPENAI_MODEL: "gpt-4o-mini"
+  OPENAI_EMBEDDING_MODEL: "text-embedding-3-small"
+  LANGSMITH_PROJECT: "horizon-capital"
+  LANGSMITH_TRACING: "true"
+  RUN_SCHEDULER_IN_API: "false"
+  AUTO_PLAN_SUPERVISION: "true"
+  PLAN_SUPERVISION_INTERVAL_SEC: "1800"
+  FIRM_BALANCE_INTERVAL_SEC: "1800"
+  # Multi-asset / discovery knobs
+  ENABLE_COINGECKO: "true"
+  ENABLE_FX_CONTEXT: "true"
+  SCAN_MAX_EVALUATE: "24"
+  SCAN_API_DISCOVERY_COUNT: "20"
+  MANAGER_BOOK_SCORE_WEIGHT: "0.12"
+  ALLOWED_HOSTS: "*"

@@ -1,0 +1,53 @@
+name: terraform
+
+on:
+  pull_request:
+    paths: ["infra/terraform/**"]
+  workflow_dispatch:
+    inputs:
+      action:
+        type: choice
+        options: [plan, apply]
+        default: plan
+      environment:
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/horizon-capital-ci
+          aws-region: us-east-1
+
+      - run: terraform fmt -check -recursive
+      - run: terraform init -input=false
+      - name: Select workspace
+        run: |
+          ENV="${{ inputs.environment || 'dev' }}"
+          terraform workspace select "$ENV" || terraform workspace new "$ENV"
+
+      - name: Plan
+        if: ${{ github.event_name == 'pull_request' || inputs.action == 'plan' }}
+        run: terraform plan -input=false -var-file="envs/${{ inputs.environment || 'dev' }}.tfvars"
+
+      - name: Apply
+        if: ${{ inputs.action == 'apply' }}
+        run: terraform apply -input=false -auto-approve -var-file="envs/${{ inputs.environment }}.tfvars"

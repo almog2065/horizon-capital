@@ -1,0 +1,25 @@
+{
+  "ticker": "NVDA",
+  "name": "NVIDIA Corporation",
+  "sector": "Information Technology",
+  "sub_industry": "Semiconductors",
+  "market_cap_usd": 3300000000000,
+  "business_description": "NVIDIA designs GPUs for gaming, professional visualization, and accelerated computing. Data center GPU business dominates revenue due to AI training and inference demand. Software platform CUDA is a competitive moat.",
+  "revenue_segments": [
+    {"name": "Data Center", "pct_of_revenue": 0.78, "growth_yoy": 0.85},
+    {"name": "Gaming", "pct_of_revenue": 0.12, "growth_yoy": 0.10},
+    {"name": "Professional Visualization", "pct_of_revenue": 0.05, "growth_yoy": 0.15},
+    {"name": "Automotive", "pct_of_revenue": 0.04, "growth_yoy": 0.30}
+  ],
+  "management": {
+    "ceo": {"name": "Jensen Huang", "since": "1993-04-05"},
+    "cfo": {"name": "Colette Kress", "since": "2013-09-09"}
+  },
+  "known_risks": [
+    {"category": "concentration", "description": "Heavy reliance on a small number of hyperscaler customers", "severity": "high"},
+    {"category": "regulatory", "description": "US export controls on advanced chips to China", "severity": "high"},
+    {"category": "competitive", "description": "Custom silicon by AMD, Google, AWS encroaching", "severity": "medium"}
+  ],
+  "peer_set": ["AMD", "AVGO", "TSM"],
+  "current_status": "watchlist"
+}

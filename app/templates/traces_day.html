@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Traces — Horizon Capital{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Traces — {{ trading_day }}</h1>
+  <p class="muted">Chronological order (oldest first). LLM rows show estimated cost from <code>model_routing</code>.</p>
+  {% if obs %}
+  <div class="kpi-grid" style="margin:12px 0">
+    <div class="kpi"><span class="kpi-label">LLM calls today</span><strong>{{ obs.llm_usage_today.llm_calls }}</strong></div>
+    <div class="kpi"><span class="kpi-label">Tokens today</span><strong>{{ '{:,}'.format(obs.llm_usage_today.tokens_total) }}</strong></div>
+    <div class="kpi"><span class="kpi-label">Cost today</span><strong>${{ '%.4f'|format(obs.llm_usage_today.cost_usd) }}</strong></div>
+    <div class="kpi"><span class="kpi-label">RAG / tools</span><strong>{{ obs.llm_usage_today.rag_calls }} / {{ obs.llm_usage_today.tool_calls }}</strong></div>
+  </div>
+  {% endif %}
+  <form method="get" action="/traces" class="rerun-actions">
+    <label>Run <input name="run_id" value="{{ filter_run_id or '' }}" placeholder="run_id"></label>
+    <button type="submit" class="button secondary">Filter</button>
+    <a href="/traces" class="button secondary">Clear</a>
+    <a href="/metrics" class="button secondary">Metrics</a>
+  </form>
+</section>
+
+<section class="card">
+  <table class="data-table traces-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Run</th>
+        <th>Agent</th>
+        <th>Event</th>
+        <th>Detail</th>
+        <th>ms</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for t in trace_rows %}
+      <tr class="trace-row trace-{{ t.event_type }}">
+        <td class="mono">{{ fmt_time(t.ts) }}</td>
+        <td><a href="/run/{{ t.run_id }}">{{ (t.run_id or '')[:14] }}{% if (t.run_id or '')|length > 14 %}…{% endif %}</a></td>
+        <td>{{ t.agent or '—' }}</td>
+        <td><code>{{ t.event_type }}</code></td>
+        <td class="trace-detail" title="{{ t.summary }}">{{ t.summary }}</td>
+        <td>{{ t.duration_ms or '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">No traces for this window.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

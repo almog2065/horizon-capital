@@ -1,0 +1,151 @@
+/* ============================================================
+   Horizon Capital — Simple/Abstract Architecture Diagram
+   Audience: non-technical readers
+   Goal: show the firm as a TEAM of AI workers in an office
+   ============================================================ */
+digraph horizon_capital_simple {
+  rankdir=TB;
+  bgcolor="white";
+  fontname="Helvetica";
+  splines=spline;
+  nodesep=0.45;
+  ranksep=0.8;
+  pad=0.5;
+  newrank=true;
+  node [fontname="Helvetica", fontsize=12, style="filled,rounded", color="#333333", penwidth=1.6];
+  edge [fontname="Helvetica", fontsize=10, color="#555555", penwidth=1.5];
+
+  labelloc="t";
+  fontsize=22;
+  label=<<B>How Horizon Capital Works — In Plain English</B><BR/><FONT POINT-SIZE="13" COLOR="#666666">A team of AI specialists: a manager, scouts, an analyst desk, a risk officer, a human approver, and a trading desk</FONT>>;
+
+  /* ============ ROW 1: Inputs ============ */
+  subgraph cluster_world {
+    label=<<B>① The Outside World</B>>;
+    labeljust="l";
+    style="rounded,filled"; fillcolor="#fef9e7"; color="#e8c84a"; fontsize=14;
+    news    [label=<📰<BR/><B>News</B><BR/><FONT POINT-SIZE="9">finance headlines</FONT>>, shape=note, fillcolor="#fff7d6", width=1.8];
+    market  [label=<📈<BR/><B>Market Data</B><BR/><FONT POINT-SIZE="9">prices · filings</FONT>>, shape=note, fillcolor="#fff7d6", width=1.8];
+    clock   [label=<⏰<BR/><B>The Clock</B><BR/><FONT POINT-SIZE="9">scheduled scans</FONT>>, shape=note, fillcolor="#fff7d6", width=1.8];
+  }
+
+  /* ============ ROW 2: Manager + scouts ============ */
+  subgraph cluster_manage {
+    label=<<B>② The Firm Manager</B>>;
+    labeljust="l";
+    style="rounded,filled"; fillcolor="#ffe5cc"; color="#d97a2c"; fontsize=14;
+    manager [label=<🧭<BR/><B>Portfolio Manager</B><BR/><FONT POINT-SIZE="9">decides what gets attention</FONT>>,
+             shape=box3d, fillcolor="#ffd9b3", width=2.4];
+    triage  [label=<📨<BR/><B>News Triage</B><BR/><FONT POINT-SIZE="9">material story?</FONT>>,
+             shape=box, fillcolor="#ffe2c2", width=2.0];
+    ideas   [label=<🔭<BR/><B>Idea Scout</B><BR/><FONT POINT-SIZE="9">finds opportunities</FONT>>,
+             shape=box, fillcolor="#ffe2c2", width=2.0];
+  }
+
+  /* ============ ROW 3: Analyst Desk ============ */
+  subgraph cluster_desk {
+    label=<<B>③ The Analyst Desk</B>>;
+    labeljust="l";
+    style="rounded,filled"; fillcolor="#e5f0ff"; color="#3a7adf"; fontsize=14;
+    analyst [label=<🧠<BR/><B>Fundamental Analyst</B><BR/><FONT POINT-SIZE="9">writes thesis · cites sources</FONT>>,
+             shape=box, fillcolor="#d6e6ff", width=2.4];
+    planner [label=<📝<BR/><B>Plan Builder</B><BR/><FONT POINT-SIZE="9">thesis → trade plan</FONT>>,
+             shape=box, fillcolor="#d6e6ff", width=2.4];
+    monitor [label=<👁️<BR/><B>Position Monitor</B><BR/><FONT POINT-SIZE="9">watches open trades</FONT>>,
+             shape=box, fillcolor="#d6e6ff", width=2.4];
+  }
+
+  /* ============ ROW 4: Risk + Human gate ============ */
+  subgraph cluster_gate {
+    label=<<B>④ Risk + Human Gate</B>>;
+    labeljust="l";
+    style="rounded,filled"; fillcolor="#fde7e7"; color="#c83a3a"; fontsize=14;
+    risk    [label=<🛡️<BR/><B>Risk Officer</B><BR/><FONT POINT-SIZE="9">policy checks</FONT>>,
+             shape=box, fillcolor="#fbd0d0", width=2.0];
+    supervisor [label=<🎓<BR/><B>Plan Supervisor</B><BR/><FONT POINT-SIZE="9">final review</FONT>>,
+             shape=box, fillcolor="#fbd0d0", width=2.0];
+    operator [label=<🙋<BR/><B>Human Operator</B><BR/><FONT POINT-SIZE="9">approves big trades<BR/>(HITL)</FONT>>,
+             shape=hexagon, fillcolor="#ffd1d1", width=2.0, penwidth=2.2];
+  }
+
+  /* ============ ROW 5: Trading desk ============ */
+  subgraph cluster_trade {
+    label=<<B>⑤ The Trading Desk</B>>;
+    labeljust="l";
+    style="rounded,filled"; fillcolor="#dff5e2"; color="#3a9d4a"; fontsize=14;
+    execute [label=<⚙️<BR/><B>Execution</B><BR/><FONT POINT-SIZE="9">simulates fills</FONT>>,
+             shape=parallelogram, fillcolor="#caeed1", width=2.2];
+    ledger  [label=<📒<BR/><B>The Books</B><BR/><FONT POINT-SIZE="9">holdings · P&amp;L · journal</FONT>>,
+             shape=cylinder, fillcolor="#b9e6c2", width=2.2];
+  }
+
+  /* ============ ROW 6: Output channels ============ */
+  subgraph cluster_out {
+    label=<<B>⑥ Reports for Humans (3 channels)</B>>;
+    labeljust="l";
+    style="rounded,filled"; fillcolor="#f0e6fa"; color="#7a4fb0"; fontsize=14;
+    excel  [label=<📊<BR/><B>Daily Excel</B><BR/><FONT POINT-SIZE="9">end-of-day summary</FONT>>,
+            shape=folder, fillcolor="#e1d3f5", width=2.0];
+    web    [label=<🖥️<BR/><B>Web Dashboard</B><BR/><FONT POINT-SIZE="9">live firm view</FONT>>,
+            shape=folder, fillcolor="#e1d3f5", width=2.0];
+    logs   [label=<📝<BR/><B>JSON Logs</B><BR/><FONT POINT-SIZE="9">structured events</FONT>>,
+            shape=folder, fillcolor="#e1d3f5", width=2.0];
+  }
+
+  /* ============ Side: Shared Knowledge ============ */
+  subgraph cluster_knowledge {
+    label=<<B>Shared Knowledge (used by all agents)</B>>;
+    labeljust="l";
+    style="rounded,filled"; fillcolor="#e9f7ec"; color="#3f8a4f"; fontsize=12;
+    rag    [label=<📚<BR/><B>The Library (RAG)</B><BR/><FONT POINT-SIZE="9">policies · filings<BR/>news · past plans</FONT>>,
+            shape=cylinder, fillcolor="#c8ecd0", width=2.2];
+    tools  [label=<🧰<BR/><B>Toolbox</B><BR/><FONT POINT-SIZE="9">prices · search<BR/>simulate · dossiers</FONT>>,
+            shape=folder, fillcolor="#d3eed7", width=2.2];
+    auditor [label=<🔍<BR/><B>Auditor</B><BR/><FONT POINT-SIZE="9">double-checks every step</FONT>>,
+            shape=octagon, fillcolor="#ffc9a3", width=2.0];
+  }
+
+  /* ============ MAIN FLOW (top → bottom) ============ */
+  news    -> triage   [label=" headline ", color="#a04020", penwidth=2.2];
+  clock   -> manager  [label=" wake ",     color="#a04020", penwidth=1.8];
+  market  -> tools    [style=dashed, color="#7a4fb0"];
+
+  manager -> ideas    [label=" scout ",    color="#a04020", penwidth=1.8];
+  manager -> triage   [style=dashed, color="#a04020"];
+  manager -> monitor  [label=" review ",   color="#a04020", penwidth=1.8];
+  ideas   -> triage   [label=" candidate ", color="#a04020", penwidth=1.8];
+
+  triage  -> analyst  [label=" act ",      color="#a04020", penwidth=2.2];
+  analyst -> planner  [label=" thesis ",   color="#a04020", penwidth=2.2];
+  planner -> risk     [label=" draft ",    color="#a04020", penwidth=2.2];
+  risk    -> supervisor [label=" pass ",   color="#a04020", penwidth=2.0];
+
+  supervisor -> operator [label=" needs OK ", color="#b13838", penwidth=2.0];
+  supervisor -> execute  [label=" autonomous ", color="#a04020", penwidth=2.0];
+  operator   -> execute  [label=" ✅ approve ", color="#b13838", penwidth=2.2];
+  operator   -> ledger   [label=" ❌ reject ", style=dashed, color="#b13838"];
+
+  execute -> ledger      [penwidth=2.0];
+  ledger  -> monitor     [label=" open positions ", style=dashed];
+
+  ledger  -> excel       [color="#7a4fb0"];
+  ledger  -> web         [color="#7a4fb0"];
+  ledger  -> logs        [color="#7a4fb0"];
+
+  /* Knowledge access (subtle dotted) */
+  edge [color="#3f8a4f", arrowhead=vee, style=dotted, constraint=false];
+  analyst  -> tools;
+  planner  -> tools;
+  risk     -> tools;
+  triage   -> tools;
+  monitor  -> tools;
+  tools    -> rag;
+
+  /* Audit side-channel */
+  edge [style=dashed, color="#999999", arrowhead=odot, constraint=false];
+  analyst  -> auditor;
+  planner  -> auditor;
+  risk     -> auditor;
+  triage   -> auditor;
+  monitor  -> auditor;
+}

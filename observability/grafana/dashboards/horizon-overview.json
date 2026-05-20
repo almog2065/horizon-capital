@@ -1,0 +1,207 @@
+{
+  "uid": "horizon-overview",
+  "title": "Horizon Capital — Operations",
+  "tags": ["horizon", "firm", "llm", "eval"],
+  "schemaVersion": 38,
+  "version": 2,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "US session open",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 3 },
+      "targets": [{ "expr": "horizon_market_session_open", "refId": "A" }],
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "CLOSED" }, "1": { "text": "OPEN" } } }] } }
+    },
+    {
+      "id": 2,
+      "title": "HITL pending",
+      "type": "stat",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 3 },
+      "targets": [{ "expr": "horizon_hitl_pending", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 3 },
+              { "color": "red", "value": 8 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "LLM cost today (USD)",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 3 },
+      "targets": [{ "expr": "horizon_llm_cost_usd_today", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4 } }
+    },
+    {
+      "id": 4,
+      "title": "Cadence jobs done today",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 3 },
+      "targets": [{ "expr": "horizon_cadence_jobs_done_today", "refId": "A" }]
+    },
+    {
+      "id": 5,
+      "title": "Total runs (DB)",
+      "type": "stat",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 3 },
+      "targets": [{ "expr": "horizon_runs_total", "refId": "A" }]
+    },
+    {
+      "id": 6,
+      "title": "Eval: last P&L %",
+      "type": "stat",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 3 },
+      "targets": [{ "expr": "horizon_eval_pnl_pct", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "percent" } }
+    },
+    {
+      "id": 10,
+      "title": "LLM calls today",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 3, "w": 12, "h": 7 },
+      "targets": [{ "expr": "horizon_llm_calls_today", "refId": "A", "legendFormat": "calls" }]
+    },
+    {
+      "id": 11,
+      "title": "Estimated LLM cost (trace DB, USD)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 3, "w": 12, "h": 7 },
+      "targets": [
+        { "expr": "horizon_trace_llm_cost_usd", "refId": "A", "legendFormat": "all-time" },
+        { "expr": "horizon_llm_cost_usd_today", "refId": "B", "legendFormat": "today ET" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    },
+    {
+      "id": 12,
+      "title": "LLM spend by purpose (counter, process lifetime)",
+      "type": "bargauge",
+      "gridPos": { "x": 0, "y": 10, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "topk(12, sum by (purpose) (horizon_llm_cost_usd_total))",
+          "refId": "A",
+          "legendFormat": "{{purpose}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    },
+    {
+      "id": 13,
+      "title": "Token volume by purpose",
+      "type": "bargauge",
+      "gridPos": { "x": 12, "y": 10, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "topk(12, sum by (purpose) (horizon_llm_prompt_tokens_total + horizon_llm_completion_tokens_total))",
+          "refId": "A",
+          "legendFormat": "{{purpose}}"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "title": "Runs by status",
+      "type": "piechart",
+      "gridPos": { "x": 0, "y": 18, "w": 8, "h": 8 },
+      "targets": [{ "expr": "horizon_runs_by_status", "refId": "A", "legendFormat": "{{status}}" }]
+    },
+    {
+      "id": 21,
+      "title": "Runs by trigger",
+      "type": "table",
+      "gridPos": { "x": 8, "y": 18, "w": 16, "h": 8 },
+      "targets": [{ "expr": "sort_desc(horizon_runs_by_trigger)", "refId": "A", "format": "table" }]
+    },
+    {
+      "id": 30,
+      "title": "Eval: grounded ratio / guardrails",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 26, "w": 12, "h": 6 },
+      "targets": [
+        { "expr": "horizon_eval_grounded_ratio", "refId": "A", "legendFormat": "grounded" },
+        { "expr": "horizon_eval_guardrail_breaches", "refId": "B", "legendFormat": "breaches" }
+      ]
+    },
+    {
+      "id": 31,
+      "title": "Eval: estimated cost (last run)",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 26, "w": 6, "h": 6 },
+      "targets": [{ "expr": "horizon_eval_estimated_cost_usd", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4 } }
+    },
+    {
+      "id": 32,
+      "title": "RAG + tool calls (trace DB)",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 26, "w": 6, "h": 6 },
+      "targets": [
+        { "expr": "horizon_trace_rag_calls", "refId": "A", "legendFormat": "RAG" },
+        { "expr": "horizon_trace_tool_calls", "refId": "B", "legendFormat": "tools" }
+      ]
+    },
+    {
+      "id": 40,
+      "title": "Web scrape health",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 32, "w": 24, "h": 6 },
+      "targets": [{ "expr": "up{job=\"horizon-web\"}", "refId": "A", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 41,
+      "title": "Cadence jobs (counter)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 38, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "sum by (job_id) (horizon_cadence_jobs_total)",
+          "refId": "A",
+          "legendFormat": "{{job_id}}"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "title": "Ops alerts (open, unacked)",
+      "description": "From shared artifacts via worker metrics — still updates when web is down.",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 44, "w": 6, "h": 4 },
+      "targets": [{ "expr": "max(horizon_alerts_open)", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 43,
+      "title": "Worker metrics scrape",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 44, "w": 6, "h": 4 },
+      "targets": [{ "expr": "up{job=\"horizon-worker\"}", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }]
+        }
+      }
+    }
+  ]
+}

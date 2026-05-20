@@ -1,0 +1,51 @@
+groups:
+  - name: horizon-capital
+    interval: 30s
+    rules:
+      - alert: HorizonWebDown
+        expr: up{job="horizon-web"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Horizon web is unreachable"
+          description: "Prometheus has been unable to scrape {{ $labels.instance }} for 2m."
+
+      - alert: HITLBacklogGrowing
+        expr: horizon_hitl_pending > 10
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "HITL backlog above threshold"
+          description: "Pending HITL queue depth has been > 10 for 10m. Operator attention needed."
+
+      - alert: LLMCostTodayHigh
+        expr: horizon_llm_cost_usd_today > 25
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Daily LLM spend elevated"
+          description: "Estimated LLM cost today (ET) exceeds $25 for 15m. Review /traces and model routing."
+
+      - alert: EvalGroundedRatioLow
+        expr: horizon_eval_grounded_ratio < 0.75 and horizon_eval_grounded_ratio > 0
+        for: 1h
+        labels: { severity: warning }
+        annotations:
+          summary: "Last eval grounded ratio below 75%"
+          description: "Re-run make eval and inspect citations in evals/output."
+
+      - alert: HorizonAlertsOpen
+        expr: max(horizon_alerts_open) > 5
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Multiple unacknowledged ops alerts"
+          description: "{{ $value }} open alerts — Grafana :3000 or /alerts when web is up; details in artifacts/operations/ops_alerts.json"
+
+      - alert: CadenceStalledOnTradingDay
+        expr: horizon_trading_day == 1 and horizon_market_session_open == 1 and horizon_cadence_jobs_done_today < 2
+        for: 2h
+        labels: { severity: warning }
+        annotations:
+          summary: "Cadence jobs may be stalled"
+          description: "Fewer than 2 cadence jobs completed today during market hours. Check horizon-worker logs."

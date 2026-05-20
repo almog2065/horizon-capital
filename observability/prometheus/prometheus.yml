@@ -1,0 +1,35 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+  external_labels:
+    cluster: horizon-capital
+    env: prod
+
+scrape_configs:
+  - job_name: horizon-web
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ["web:8000"]
+        labels: { service: web }
+
+  # Ops gauges (alerts, cadence) stay available when web is down.
+  - job_name: horizon-worker
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ["worker:9091"]
+        labels: { service: worker }
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+# alertmanager: configure when you wire Slack/PagerDuty
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ["alertmanager:9093"]
+
+rule_files:
+  - /etc/prometheus/rules.yml

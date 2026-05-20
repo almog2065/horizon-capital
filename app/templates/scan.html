@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Idea Generator — proactive scan</h1>
+<p class="muted">Scans the candidate universe, ranks ideas by quality / valuation / precedent / portfolio fit,
+filters to <strong>new ideas only</strong> (not already held, not recently suggested),
+writes a research brief per top pick, and routes them through the existing
+<strong>Fundamental → Plan Builder → Risk Officer</strong> pipeline.
+Auditor reviews every step.</p>
+
+<div class="card trigger-actions">
+  <h2>Run a scan</h2>
+  <form method="post" action="/scan">
+    <label>Top-K picks (research brief + downstream routing)
+      <input type="number" name="top_k" value="3" min="1" max="10">
+    </label>
+    <label>Novelty window (days) — exclude tickers suggested within this many days
+      <input type="number" name="novelty_window_days" value="7" min="0" max="90" step="1">
+    </label>
+    <label>
+      <input type="checkbox" name="only_new" value="yes" checked>
+      Only show new ideas (exclude held + recently-suggested tickers)
+    </label>
+    <label>
+      <input type="checkbox" name="spawn_downstream" value="yes" checked>
+      Spawn downstream runs (Fundamental → Plan → Risk → HITL) for top picks
+    </label>
+    <button type="submit" class="btn-full">Run scan</button>
+  </form>
+  <p class="muted" style="margin-top:0.75rem">After submit you go straight to the scan pipeline run page; it refreshes while the scan runs in the background.</p>
+</div>
+
+<div class="card">
+  <h2>Candidate universe ({{ pool|length }} tickers)</h2>
+  <table>
+    <thead><tr><th>Ticker</th><th>Sector</th><th>Industry</th><th>Dossier?</th><th>Description</th></tr></thead>
+    <tbody>
+    {% for c in pool %}
+      <tr>
+        <td><strong>{{ c.ticker }}</strong></td>
+        <td>{{ c.sector }}</td>
+        <td>{{ c.industry or '—' }}</td>
+        <td>{{ "yes" if c.has_dossier else "no" }}</td>
+        <td><small>{{ c.blurb or '' }}</small></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted">Dossier-backed names have richer grounding (business context, peer set, known risks).
+  Non-dossier names are screened on fundamentals + filings RAG only — the brief will note this and
+  recommend a dossier be built before opening a position.</p>
+</div>
+
+{% if last_scan %}
+<div class="card">
+  <h2>Last scan</h2>
+  <p>
+    <a href="/run/{{ last_scan.run_id }}">{{ last_scan.run_id }}</a>
+    — {{ last_scan.status }} — as of {{ last_scan.as_of }}
+  </p>
+  {% set scan_out = last_scan.state.idea_scan or {} %}
+
+  {% if scan_out.discovery %}
+    {% set d = scan_out.discovery %}
+    <p class="muted">
+      <strong>Discovery:</strong>
+      EDGAR status <code>{{ d.edgar_status or 'n/a' }}</code>
+      · static pool {{ d.static_pool_size or '—' }}
+      · EDGAR additions <strong>{{ d.api_additions or 0 }}</strong>
+      {% if d.edgar_new_tickers %}
+        ({{ d.edgar_new_tickers|join(', ') }})
+      {% endif %}
+      {% if d.edgar_error %}
+        — <em>error: {{ d.edgar_error }}</em>
+      {% endif %}
+    </p>
+  {% endif %}
+
+  {% if scan_out.excluded_already_held or scan_out.excluded_recently_suggested %}
+    <p class="muted">
+      <strong>Excluded:</strong>
+      {% if scan_out.excluded_already_held %}
+        already held: {{ scan_out.excluded_already_held|join(', ') }}.
+      {% endif %}
+      {% if scan_out.excluded_recently_suggested %}
+        recently suggested ({{ scan_out.novelty_window_days }} days):
+        {{ scan_out.excluded_recently_suggested|join(', ') }}.
+      {% endif %}
+    </p>
+  {% endif %}
+
+  {% if scan_out.top_picks %}
+    <h3>Top picks — with research briefs</h3>
+    {% for p in scan_out.top_picks %}
+      <details class="card sample" {% if loop.first %}open{% endif %}>
+        <summary>
+          <strong>{{ p.ticker }}</strong> · composite {{ '%.2f'|format(p.composite_score) }}
+          · {{ p.recommended_action }}
+          {% if (p.novelty or {}).is_new %}<span class="pill pill-small">NEW</span>{% endif %}
+        </summary>
+        {% if p.research_brief %}
+          {% set b = p.research_brief %}
+          <p><strong>Summary.</strong> {{ b.executive_summary }}</p>
+          <p><strong>Business.</strong> {{ b.business_overview }}</p>
+          <p><strong>Why now.</strong> {{ b.why_now }}</p>
+          <p><strong>Key fundamentals.</strong>
+            op margin {{ '%.1f'|format((b.key_fundamentals.operating_margin or 0)*100) }}%,
+            growth {{ '%.1f'|format((b.key_fundamentals.revenue_growth_yoy or 0)*100) }}%,
+            PE {{ '%.1f'|format(b.key_fundamentals.pe_ttm or 0) }},
+            FCF yield {{ '%.1f'|format(b.key_fundamentals.fcf_yield_pct or 0) }}% —
+            <em>{{ b.key_fundamentals.valuation_interpretation }}</em>
+          </p>
+          <p><strong>Positive catalysts.</strong></p>
+          <ul>
+          {% for c in (b.catalysts.positive or []) %}<li>{{ c }}</li>{% endfor %}
+          </ul>
+          {% if b.catalysts.negative %}
+          <p><strong>Negative catalysts / concerns.</strong></p>
+          <ul>
+          {% for c in b.catalysts.negative %}<li>{{ c }}</li>{% endfor %}
+          </ul>
+          {% endif %}
+          <p><strong>Risks.</strong></p>
+          <ul>
+          {% for r in (b.risks or []) %}<li>{{ r }}</li>{% endfor %}
+          </ul>
+          <p><strong>Competitive position.</strong> {{ b.competitive_position }}</p>
+          <p><strong>Suggested entry.</strong>
+            {{ '%.1f'|format((b.suggested_entry.target_size_pct_nav or 0)*100) }}% NAV
+            · {{ b.suggested_entry.entry_type }}
+            · horizon {{ b.suggested_entry.horizon }}
+            · research depth: <strong>{{ b.recommended_research_depth }}</strong>
+          </p>
+          <p class="muted"><strong>Sources cited:</strong>
+            {% for s in (b.sources or []) %}
+              <code>{{ s.ref }}</code> ({{ s.source_type }} → {{ s.what_it_supports }}){% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </p>
+        {% endif %}
+      </details>
+    {% endfor %}
+  {% endif %}
+
+  {% if scan_out.ranked_candidates %}
+    <h3>Full ranking ({{ scan_out.ranked_candidates|length }})</h3>
+    <table>
+      <thead><tr><th>Ticker</th><th>Composite</th><th>Q</th><th>V</th><th>P</th><th>F</th><th>Action</th><th>New?</th><th>Rationale</th></tr></thead>
+      <tbody>
+      {% for c in scan_out.ranked_candidates %}
+        <tr>
+          <td><strong>{{ c.ticker }}</strong></td>
+          <td>{{ '%.2f'|format(c.composite_score or 0) }}</td>
+          <td>{{ '%.2f'|format((c.scores or {}).get('quality_score', 0)) }}</td>
+          <td>{{ '%.2f'|format((c.scores or {}).get('valuation_score', 0)) }}</td>
+          <td>{{ '%.2f'|format((c.scores or {}).get('precedent_score', 0)) }}</td>
+          <td>{{ '%.2f'|format((c.scores or {}).get('fit_score', 0)) }}</td>
+          <td>{{ c.recommended_action }}</td>
+          <td>{{ 'yes' if (c.novelty or {}).get('is_new') else (c.novelty or {}).get('times_previously_seen', 0) }}</td>
+          <td><small>{{ (c.rationale or '')[:140] }}</small></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if last_scan.state.downstream_run_ids %}
+    <p><strong>Downstream runs spawned:</strong>
+    {% for rid in last_scan.state.downstream_run_ids %}
+      <a href="/run/{{ rid }}">{{ rid }}</a>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+    </p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

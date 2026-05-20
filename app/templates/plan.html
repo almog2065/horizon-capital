@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "_pipeline.html" import pipeline_bar %}
+{% block content %}
+
+<h1>Plan {{ plan.id }}</h1>
+<p><strong>Ticker:</strong> {{ plan.ticker }} &nbsp;
+   <strong>Status:</strong> <span class="status status-{{ plan.status }}">{{ plan.status }}</span></p>
+<div class="rerun-actions" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px">
+{% if source_run_id %}
+<form method="post" action="/plan/{{ plan.id }}/rerun" style="margin:0">
+  <button type="submit" class="button">↻ Rerun pipeline</button>
+</form>
+<span class="muted">From <a href="/run/{{ source_run_id }}">{{ source_run_id }}</a></span>
+{% endif %}
+{% if can_delete_plan %}
+<form method="post" action="/plan/{{ plan.id }}/delete" style="margin:0"
+      onsubmit="return confirm('Delete this plan permanently?{% if has_pending_hitl %} Pending HITL will be cleared.{% endif %}');">
+  <button type="submit" class="btn-secondary btn-danger">Delete stuck plan</button>
+</form>
+{% endif %}
+</div>
+
+{{ pipeline_bar(pipeline) }}
+
+<section class="card">
+  <h2>Thesis</h2>
+  <p>{{ plan.thesis.narrative }}</p>
+  <ul>
+  {% for sp in plan.thesis.supporting_points %}
+    <li>{{ sp }}</li>
+  {% endfor %}
+  </ul>
+  <p class="muted">Target horizon: {{ plan.thesis.expected_holding_horizon }}</p>
+</section>
+
+<section class="card">
+  <h2>Entry</h2>
+  <pre>{{ plan.entry | tojson(indent=2) }}</pre>
+</section>
+
+<section class="card">
+  <h2>Monitoring rules</h2>
+  <table>
+    <thead><tr><th>Check</th><th>Type</th><th>Threshold</th><th>On breach</th></tr></thead>
+    <tbody>
+    {% for c in plan.monitoring.checks %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td>{{ c.type }}</td>
+        <td>{{ c.get('threshold') or c.get('threshold_pct') or c.get('threshold_days') }}</td>
+        <td>{{ c.on_breach }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted">Interval: {{ plan.monitoring.interval }}</p>
+</section>
+
+<section class="card">
+  <h2>Guardrails</h2>
+  <pre>{{ plan.guardrails | tojson(indent=2) }}</pre>
+</section>
+
+<section class="card">
+  <h2>Exit</h2>
+  {% if plan.exit is defined and plan.exit %}
+  <pre>{{ plan.exit | tojson(indent=2) }}</pre>
+  {% else %}
+  <p class="muted">No exit criteria on file (common for bootstrap / draft plans).</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>History</h2>
+  <ul>
+  {% for h in plan.history %}
+    <li>{{ h.at }} — <strong>{{ h.agent }}</strong>: {{ h.action }}
+      {% if h.note %} — <em>{{ h.note }}</em>{% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+
+{% if hitl and hitl.status == 'pending' %}
+<p><a href="/hitl/{{ hitl.item_id }}">→ HITL review</a></p>
+{% endif %}
+
+<p><a href="/">← back</a></p>
+
+{% endblock %}

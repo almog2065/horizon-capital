@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "coingecko": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.api.coingecko.com/mcp"]
+    },
+    "yfinance": {
+      "command": "uvx",
+      "args": ["yfinance-mcp"]
+    },
+    "sec-edgar": {
+      "command": "npx",
+      "args": ["-y", "mcp-edgar"]
+    }
+  }
+}

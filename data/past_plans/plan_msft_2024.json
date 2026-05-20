@@ -1,0 +1,14 @@
+{
+  "plan_id": "plan_msft_2024_q2",
+  "ticker": "MSFT",
+  "sector": "Information Technology",
+  "thesis_summary": "Azure growth durability with operating leverage on subscription base. AI capex cycle as multi-year tailwind. Margin compression in near-term is acceptable cost of capacity investment.",
+  "entry_date": "2024-05-12",
+  "exit_date": "2025-11-08",
+  "outcome": {
+    "realized_return_pct": 0.34,
+    "holding_period_days": 545,
+    "thesis_validated": "yes"
+  },
+  "lesson_learned": "Holding through Q3 2024 AI capex panic was correct; thesis held."
+}
