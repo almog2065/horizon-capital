@@ -256,3 +256,4 @@ is in `docs/how-it-works-simple.md`.
 | C. README, technical overview, runbook, eval report | `README.md` · `docs/technical-overview.md` · `docs/runbooks/*` · `docs/eval-results.md` |
 | D. Sample run with reports + traces | `artifacts/reports/2026-05-18/daily.{json,xlsx}` (sample in repo) · `evals/output/` · live data on Docker volume / `ops.sqlite` |
 | 6. Output channels (≥2) | **3:** Web UI (live dashboard), Excel daily report, JSON log stream — justified in `docs/technical-overview.md` |
+# horizon-capital
